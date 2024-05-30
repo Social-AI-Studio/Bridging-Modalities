@@ -78,20 +78,20 @@ def create_prompt(text, label, caption, webentities):
 # test annotations - /mnt/data1/datasets/temp/MMHS150K/annotations/test.jsonl
 
 import json
-def main(input_file, output_file):
+def main(annotations_file, captions_dir, web_entities_combined_file,  output_file):
     # load all annotations
     data = []
-    with open(input_file, 'r') as file:
+    with open(annotations_file, 'r') as file:
         for line in file:
             # Load each line as JSON
             json_data = json.loads(line)
             data.append(json_data)
 
     # load all captions
-    combined_dict = combine_captions('/mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco')
+    combined_dict = combine_captions(captions_dir)
 
     # load all web entities
-    file_path = '/mnt/data1/datasets/temp/MMHS150K/final_entities.json'
+    file_path = web_entities_combined_file
     combined_web = read_json_file(file_path)
     skipped = 0
 
@@ -115,6 +115,8 @@ def main(input_file, output_file):
             continue
     print("Skipped records = " + str(skipped))
 
-input_file = '/mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl'
+annotations_file = '/mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl'
+captions_dir = '/mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco'
+web_entities_combined_file = '/mnt/data1/datasets/temp/MMHS150K/final_entities.json'
 output_file = 'mmhs-output.jsonl'
-main(input_file, output_file)
+main(annotations_file, captions_dir, web_entities_combined_file, output_file)
