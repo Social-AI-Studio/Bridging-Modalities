@@ -1,10 +1,12 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+# load models
 device = "cuda" # the device to load the model onto
 import os
 model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
 tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
 
+#util scripts
 import json
 def append_dict_to_jsonl(dictionary, filename):
     with open(filename, 'a') as file:
@@ -64,27 +66,30 @@ def create_prompt(text, label, caption, webentities):
     ]
     return messages
 
+
+# train annotations - /mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl
+# val annotations - /mnt/data1/datasets/temp/MMHS150K/annotations/val.jsonl
+# test annotations - /mnt/data1/datasets/temp/MMHS150K/annotations/test.jsonl
+
 import json
+def main(input_file, output_file):
+    # load all annotations
+    data = []
+    with open(input_file, 'r') as file:
+        for line in file:
+            # Load each line as JSON
+            json_data = json.loads(line)
+            data.append(json_data)
 
-# load all annotations
-data = []
-with open('/mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl', 'r') as file:
-    for line in file:
-        # Load each line as JSON
-        json_data = json.loads(line)
-        data.append(json_data)
-
-def main():
     # load all captions
     combined_dict = combine_captions('/mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco')
 
     # load all web entities
     file_path = '/mnt/data1/datasets/temp/MMHS150K/final_entities.json'
     combined_web = read_json_file(file_path)
+    skipped = 0
 
     for index, record in enumerate(data):
-        print(index)
-
         if record["id"] in combined_web:
             prompt = create_prompt(record["tweet_text"], record["label"], combined_dict[record["id"]], combined_web[record["id"]])
             encodeds = tokenizer.apply_chat_template(prompt, return_tensors="pt").to(device)
@@ -95,8 +100,12 @@ def main():
             generated_ids = model.generate(model_inputs, max_new_tokens=340, do_sample=True)
             decoded = tokenizer.batch_decode(generated_ids)
             record["mistral_instruct_statement"] = decoded[0]
-            append_dict_to_jsonl(record, 'mmhs-output.jsonl')
+            append_dict_to_jsonl(record, output_file)
         else: 
+            skipped += 1
             continue
-
-main()
+    print("Skipped records = " + str(skipped))
+    
+input_file = '/mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl'
+output_file = 'mmhs-output.jsonl'
+main(input_file, output_file)
