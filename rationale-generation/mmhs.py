@@ -30,6 +30,12 @@ def read_json_file(file_path):
         data = json.load(file)
     return data
 
+def remove_prompt_from_output(sentence):
+    last_inst_index = sentence.rfind('Answer:')
+    if last_inst_index != -1:
+        return sentence[last_inst_index + len('Answer:'):].strip()
+    else:
+        return sentence
 
 def create_prompt(text, label, caption, webentities):
     hateful = None
@@ -99,13 +105,16 @@ def main(input_file, output_file):
 
             generated_ids = model.generate(model_inputs, max_new_tokens=340, do_sample=True)
             decoded = tokenizer.batch_decode(generated_ids)
-            record["mistral_instruct_statement"] = decoded[0]
+
+            output = decoded[0]
+            cleaned_explanation = remove_prompt_from_output(output)
+            record["mistral_instruct_statement"] = cleaned_explanation
             append_dict_to_jsonl(record, output_file)
         else: 
             skipped += 1
             continue
     print("Skipped records = " + str(skipped))
-    
+
 input_file = '/mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl'
 output_file = 'mmhs-output.jsonl'
 main(input_file, output_file)
