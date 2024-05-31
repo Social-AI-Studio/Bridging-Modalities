@@ -2,7 +2,7 @@ import os
 import torch
 import clip
 import argparse
-
+import pickle
 import pandas as pd
 import json
 
@@ -45,6 +45,11 @@ def main(annotation_filepath, img_folder,  output_folder):
 
         img_preprocess = preprocess(img).unsqueeze(0).to(device)
         img_features = model.encode_image(img_preprocess)
+
+        # Save img_features as .pkl file
+        output_filepath = os.path.join(output_folder, f"{id}.pkl")
+        with open(output_filepath, 'wb') as f:
+            pickle.dump(img_features, f)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Converting Interpretations to Graph")
