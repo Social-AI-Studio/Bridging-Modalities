@@ -1,28 +1,47 @@
+import argparse
+import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 from rank_bm25 import BM25Okapi
 
-def bm25_similarity(text1, text2):
+def bm25_similarity(query, corpus):
     # Preprocessing: Tokenize the texts
     def tokenize(text):
         return text.lower().split()
     
-    # Tokenize the texts
-    corpus = [tokenize(text1), tokenize(text2)]
+    # Tokenize the entire corpus
+    tokenized_corpus = [tokenize(doc) for doc in corpus]
     
     # Initialize BM25
-    bm25 = BM25Okapi(corpus)
+    bm25 = BM25Okapi(tokenized_corpus)
     
-    # Generate BM25 vectors for the texts
-    bm25_vector1 = bm25.get_scores(tokenize(text1))
-    bm25_vector2 = bm25.get_scores(tokenize(text2))
+    # Tokenize the query
+    tokenized_query = tokenize(query)
     
-    # Calculate cosine similarity between the BM25 vectors
-    cosine_sim = cosine_similarity([bm25_vector1], [bm25_vector2])
+    # Generate BM25 scores for the query against the corpus
+    sim_scores = bm25.get_scores(tokenized_query)
     
-    return cosine_sim[0][0]
+    return sim_scores
 
-# Example usage
-# text1 = "This is the first sample text."
-# text2 = "This is the second sample text with some different words."
-# print(f"Cosine Similarity between the BM25 vectors: {bm25_similarity(text1, text2)}")
+def get_top_k_similar(sim_matrix, labels, k):
+    top_k_indices = sim_matrix.argsort()[-k:][::-1]
+    top_k_scores = sim_matrix[top_k_indices]
+    top_k_labels = [labels[i] for i in top_k_indices]
+    
+    return list(zip(top_k_labels, top_k_indices, top_k_scores))
+
+def main(annotation_filepath):
+    df = pd.read_json(annotation_filepath, lines=True)
+    corpus = df['mistral_instruct_statement'].tolist()
+    classes = df['class'].tolist()
+
+    query = "What is my name"
+    sim_matrix = bm25_similarity(query, corpus)
+    similar_entries = get_top_k_similar(sim_matrix, classes, 4)
+    print(similar_entries)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Converting Interpretations to Graph")
+    parser.add_argument("--annotation_filepath", type=str, required=True)
+    args = parser.parse_args()
+
+    main(args.annotation_filepath)
