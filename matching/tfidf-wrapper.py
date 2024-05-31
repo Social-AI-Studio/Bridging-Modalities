@@ -9,11 +9,15 @@ def get_top_k_similar(sim_matrix, labels, k):
     for idx, label in zip(range(sim_matrix.shape[0]), labels):
         similar_indices = sim_matrix[idx].argsort()[-(k+1):-1][::-1]
         similar_scores = sim_matrix[idx][similar_indices]
-        top_k_similar.append(list(zip(labels, similar_indices, similar_scores)))
+        top_k_similar.append(list(zip(label, similar_indices, similar_scores)))
     
     return top_k_similar
 
-def tfidf_similarity(corpus):
+def tfidf_similarity(query, corpus):
+    # query -  str: "abcdef"
+    # corpus - list: ["def", "ghi"]
+    corpus = [query] + corpus
+
     # Create a TfidfVectorizer object
     vectorizer = TfidfVectorizer()
     
@@ -21,7 +25,8 @@ def tfidf_similarity(corpus):
     tfidf_matrix = vectorizer.fit_transform(corpus)
     
     # Calculate the cosine similarity between the two vectors
-    return cosine_similarity(tfidf_matrix, tfidf_matrix)
+    # (1 x 2)
+    return cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:])
 
 def main(annotation_filepath):
     df = pd.read_json(annotation_filepath, lines=True)
