@@ -51,6 +51,13 @@ def main(annotation_filepath, caption_dir, result_dir):
         annotation_df['img'] = annotation_df['img'].apply(lambda x: os.path.basename(x))
         annotation_df['caption'] = annotation_df['img'].apply(lambda x: load_caption(x, caption_dir))
         annotation_df['content'] = annotation_df.apply(lambda x: MEME_CONTENT_TEMPLATE.format(caption=x['caption'], text=x['text']), axis=1)
+        annotation_df['label'] = annotation_df['gold_hate'].apply(lambda x: 1 if x[0] == 'hateful' else 0)
+        
+    if "mami" in annotation_filepath:
+        annotation_df['img'] = annotation_df['file_name']
+        annotation_df['caption'] = annotation_df['img'].apply(lambda x: load_caption(x, caption_dir))
+        annotation_df['content'] = annotation_df.apply(lambda x: MEME_CONTENT_TEMPLATE.format(caption=x['caption'], text=x['Text Transcription']), axis=1)
+        annotation_df['label'] = annotation_df['misogynous']
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.2"
     model = AutoModelForCausalLM.from_pretrained(model_id,
@@ -107,9 +114,7 @@ def main(annotation_filepath, caption_dir, result_dir):
         results["response_text"][output_obj['img']] = output_obj['response_text']
 
     # Answer Processing
-    for img, label in tqdm.tqdm(zip(annotation_df['img'], annotation_df['gold_hate'])):
-        label = 1 if label[0] == "hateful" else 0 
-
+    for img, label in tqdm.tqdm(zip(annotation_df['img'], annotation_df['label'])):
         results["images"].append(img)
         results["y_true"].append(label)
 
@@ -125,7 +130,10 @@ def main(annotation_filepath, caption_dir, result_dir):
         results["y_pred_not_corrected"].append(pred)
 
         if pred == -1:
-            pred = 1 if label == 0 else 1
+            if label == 1:
+                pred = 0
+            else:
+                pred = 1
             results["num_invalids"] += 1
 
         results["y_pred"].append(pred)
@@ -136,6 +144,7 @@ def main(annotation_filepath, caption_dir, result_dir):
 
     print(f"F1 Score: {f1:04}")
     print(f"Acc Score: {acc:04}")
+    print(f"Num. Invalids: {results['num_invalids']}")
 
     
 
@@ -147,7 +156,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Converting Interpretations to Graph")
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
-    parser.add_argument("--result_dir", type=str, default="../results/baselines/mistral-zs/")
+    parser.add_argument("--result_dir", type=str, required=True)
     # parser.add_argument("--interpretation_filepath", type=str, required=True)
     # parser.add_argument("--split", type=int, required=True)
     # parser.add_argument("--num_splits", type=int, required=True)
