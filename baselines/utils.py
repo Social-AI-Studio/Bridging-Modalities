@@ -23,7 +23,7 @@ def load_features(features_dir):
 
     return data_list
 
-def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image_dir, content_template):
+def load_inference_dataset(annotation_filepath, caption_dir, features_dir, content_template):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
@@ -45,7 +45,6 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
             obj["features"] = features[index]
-            obj["img_dir"] = image_dir
 
         if "mami" in annotation_filepath:
             obj["img"] = annot['file_name']
@@ -57,14 +56,14 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
             obj["features"] = features[index]
-            obj["img_dir"] = image_dir
+
 
 
         processed_annotations.append(obj)
 
     return processed_annotations
 
-def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_dir, content_template):
+def load_support_dataset(annotation_filepath, caption_dir, features_dir, content_template):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
@@ -101,7 +100,6 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_d
             obj["rationale"] = annot['mistral_instruct_statement']
             obj["features"] = features[index]
 
-            obj["img_dir"] = image_dir
 
             
         processed_annotations.append(obj)

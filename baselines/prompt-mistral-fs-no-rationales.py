@@ -94,7 +94,7 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             sim_matrix = sift_corpus_similarity(query_image_features, corpus_features)
             sample_indices = sift_sampler(sim_matrix, classes, k)
             samples = [corpus_annotations[index] for index in sample_indices]
-            
+
         for s in samples:
             messages.append(
                 {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=s['content'])}
@@ -120,14 +120,14 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
     )
     return messages
 
-def main(annotation_filepath, caption_dir, features_dir, image_dir, result_dir, use_demonstration, demonstration_selection, support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, image_dir, MEME_CONTENT_TEMPLATE)
+def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection, support_filepaths, support_caption_dirs, support_feature_dirs):
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir,  MEME_CONTENT_TEMPLATE)
     support_annots = []
-    for filepath, support_caption_dir, support_feature_dir, support_image_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
+    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
         template = MEME_CONTENT_TEMPLATE
         if "latent_hatred" in filepath:
             template = POST_CONTENT_TEMPLATE
-        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, support_image_dir, template)
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, template)
         support_annots += annots
     
     os.makedirs(result_dir, exist_ok=True)
@@ -239,29 +239,24 @@ if __name__ == "__main__":
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
     parser.add_argument("--feature_dir", type=str, default=None)
-    parser.add_argument("--image_dir", type=str, default=None)
     parser.add_argument("--result_dir", type=str, required=True)
-
 
     parser.add_argument("--use_demonstrations", action="store_true")
     parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
-    parser.add_argument("--support_image_dirs", nargs='+')
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
         args.caption_dir,
         args.feature_dir,
-        args.image_dir,
         args.result_dir,
         args.use_demonstrations,
         args.demonstration_selection,
         args.support_filepaths,
         args.support_caption_dirs,
-        args.support_feature_dirs,
-        args.support_image_dirs
+        args.support_feature_dirs
     )
 
