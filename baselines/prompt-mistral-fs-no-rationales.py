@@ -14,6 +14,15 @@ from utils import load_inference_dataset, load_support_dataset
 from ..matching.tfidf_wrapper import compute_corpus_matrix
 from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 
+from ..matchingbm25_wrapper import bm25_similarity
+from ..matchingbm25_wrapper import get_top_k_similar as bm25_sampler
+
+# from clip_wrapper import clip_corpus_similarity
+# from clip_wrapper import get_top_k_similar as get_topk_clip_sampler
+
+# from sift import sift_corpus_similarity
+# from sift import get_top_k_similar as get_topk_sift_sampler
+
 # should hatespeech prediction template be there?
 INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
 Definition of Hate Speech:
@@ -59,7 +68,14 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             sample_indices = tfidf_sampler(sim_matrix, classes, k)
             samples = [support_annots[index] for index in sample_indices]
             
-        
+        if demonstration_selection == "bm-25":
+            query = content["content"]
+            corpus = [annotation['rationale'] for annotation in support_annots]
+
+            sim_matrix = bm25_similarity(query, corpus)
+            sample_indices = bm25_sampler(sim_matrix, classes, k)
+            samples = [support_annots[index] for index in sample_indices]
+
         for s in samples:
             messages.append(
                 {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=s['content'])}

@@ -7,7 +7,7 @@ def bm25_similarity(query, corpus):
     # Preprocessing: Tokenize the texts
     def tokenize(text):
         return text.lower().split()
-    
+    corpus = [query] + corpus
     # Tokenize the entire corpus
     tokenized_corpus = [tokenize(doc) for doc in corpus]
     
@@ -19,15 +19,14 @@ def bm25_similarity(query, corpus):
     
     # Generate BM25 scores for the query against the corpus
     sim_scores = bm25.get_scores(tokenized_query)
-    
-    return sim_scores
+    return sim_scores[1:]
 
 def get_top_k_similar(sim_matrix, labels, k):
     top_k_indices = sim_matrix.argsort()[-k:][::-1]
     top_k_scores = sim_matrix[top_k_indices]
     top_k_labels = [labels[i] for i in top_k_indices]
     
-    return list(zip(top_k_labels, top_k_indices, top_k_scores))
+    return top_k_indices
 
 def main(annotation_filepath):
     df = pd.read_json(annotation_filepath, lines=True)
