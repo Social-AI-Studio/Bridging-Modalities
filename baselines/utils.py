@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 
 def load_caption(img_filename, caption_dir):
     filename, _ = os.path.splitext(img_filename)
@@ -9,14 +10,29 @@ def load_caption(img_filename, caption_dir):
 
     return d['caption']
 
-def load_inference_dataset(annotation_filepath, caption_dir, content_template):
+def load_features(features_dir):
+    data_list = []
+
+    # Iterate over all files in the folder
+    for filename in os.listdir(features_dir):
+        if filename.endswith('.pkl'):
+            file_path = os.path.join(features_dir, filename)
+            with open(file_path, 'rb') as file:
+                data = pickle.load(file)
+                data_list.append(data)
+
+    return data_list
+
+def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image_dir, content_template):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
             annotations.append(json.loads(line))
 
+    features = load_features(features_dir)
+
     processed_annotations = []
-    for annot in annotations:
+    for index, annot in enumerate(annotations):
         obj = {}
         
         if "fhm" in annotation_filepath:
@@ -28,6 +44,9 @@ def load_inference_dataset(annotation_filepath, caption_dir, content_template):
             obj["content"] = content_template.format(caption=obj['caption'], text=obj['text'])
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
+            obj["features"] = features[index]
+            obj["img_dir"] = image_dir
+
         if "mami" in annotation_filepath:
             obj["img"] = annot['file_name']
             obj["text"] = annot['Text Transcription']
@@ -36,19 +55,27 @@ def load_inference_dataset(annotation_filepath, caption_dir, content_template):
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = content_template.format(caption=obj['caption'], text=obj['text'])
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
-        
+
+            obj["features"] = features[index]
+            obj["img_dir"] = image_dir
+
+
         processed_annotations.append(obj)
 
     return processed_annotations
 
-def load_support_dataset(annotation_filepath, caption_dir, content_template):
+def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_dir, content_template):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
             annotations.append(json.loads(line))
 
+    features = None
+    if features_dir != "":
+        features = load_features(features_dir)
+
     processed_annotations = []
-    for annot in annotations:
+    for index, annot in enumerate(annotations):
         obj = {}
         
         if "latent_hatred" in annotation_filepath:
@@ -61,7 +88,7 @@ def load_support_dataset(annotation_filepath, caption_dir, content_template):
             obj["content_for_retrieval"] = f"{obj['text']}"
 
             obj["rationale"] = annot['mistral_instruct_statement']
-
+            
         if "mmhs" in annotation_filepath.lower():
             obj["img"] = f"{annot['id']}.jpg"
             obj["text"] = annot['tweet_text']
@@ -72,7 +99,11 @@ def load_support_dataset(annotation_filepath, caption_dir, content_template):
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
             obj["rationale"] = annot['mistral_instruct_statement']
+            obj["features"] = features[index]
 
+            obj["img_dir"] = image_dir
+
+            
         processed_annotations.append(obj)
 
     return processed_annotations

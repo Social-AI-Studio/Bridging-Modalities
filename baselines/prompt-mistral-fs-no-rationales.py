@@ -8,8 +8,13 @@ import random
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
+from ..matching.tfidf_wrapper import compute_corpus_matrix
+from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+
+# should hatespeech prediction template be there?
 INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
 Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
@@ -33,37 +38,45 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
     messages = []
 
     if use_demonstrations:
+        classes = []
+        for annotation in support_annots:
+            if "class" in annotation:
+                classes.append(annotation["class"])
+            elif "label" in annotation:
+                classes.append(annotation["label"])
+
         if demonstration_selection == "random":
             samples = random.sample(support_annots, k)
 
-            for s in samples:
-                messages.append(
-                    {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=s['content'])}
-                )
-
-                answer = "Hateful" if s['label'] == 1 else "Not Hateful"
-                messages.append(
-                    {"role": "assistant", "content": DEMONSTRATION_TEMPLATE.format(answer=answer)}
-                )
-
         if demonstration_selection == "tf-idf":
-            pass
+            query = content["content"]
+            corpus = [annotation['rationale'] for annotation in support_annots]
+        
+            corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
 
-        if demonstration_selection == "bm-25":
-            pass
+            query_vector = vectorizer.transform([query])
+            sim_matrix = cosine_similarity(query_vector, corpus_matrix).flatten()
+            sample_indices = tfidf_sampler(sim_matrix, classes, k)
+            samples = [support_annots[index] for index in sample_indices]
+            
+        
+        for s in samples:
+            messages.append(
+                {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=s['content'])}
+            )
 
-        if demonstration_selection == "sift":
-            pass
-
-        if demonstration_selection == "clip":
-            pass
+            answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
+            messages.append(
+                {"role": "assistant", "content": DEMONSTRATION_TEMPLATE.format(answer=answer)}
+            )
 
         # Flags/Considerations
         # Query: FHM/MAMI
         # Support: (a) LatentHatReD, (b) MMHS or (c) LatentHatReD + MMHS
         # (1x10000) -> top 100 are all hateful -> 4-shot demonstrations
         # -- demonstration_distribution? "equal" or "top-k"?
-
+        print(messages)
+        exit()
             
 
     # add the inference example
@@ -72,16 +85,16 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
     )
     return messages
 
-def main(annotation_filepath, caption_dir, result_dir, use_demonstration, demonstration_selection, support_filepaths, support_caption_dirs):
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, MEME_CONTENT_TEMPLATE)
+def main(annotation_filepath, caption_dir, features_dir, image_dir, result_dir, use_demonstration, demonstration_selection, support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, image_dir, MEME_CONTENT_TEMPLATE)
     support_annots = []
-    for filepath, support_caption_dir in zip(support_filepaths, support_caption_dirs):
+    for filepath, support_caption_dir, support_feature_dir, support_image_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
         template = MEME_CONTENT_TEMPLATE
         if "latent_hatred" in filepath:
             template = POST_CONTENT_TEMPLATE
-        annots = load_support_dataset(filepath, support_caption_dir, template)
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, support_image_dir, template)
         support_annots += annots
-
+    
     os.makedirs(result_dir, exist_ok=True)
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.2"
@@ -104,7 +117,7 @@ def main(annotation_filepath, caption_dir, result_dir, use_demonstration, demons
         result_filepath = os.path.join(result_dir, img)
 
         messages = prepare_inputs(
-            content,
+            annot,
             use_demonstration,
             demonstration_selection,
             support_annots
@@ -120,8 +133,7 @@ def main(annotation_filepath, caption_dir, result_dir, use_demonstration, demons
                 demonstration_selection,
                 support_annots
             )
-            print(json.dumps(messages))
-            exit()
+            
 
             input_ids = tokenizer.apply_chat_template(
                 messages,
@@ -191,22 +203,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Converting Interpretations to Graph")
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
+    parser.add_argument("--feature_dir", type=str, default=None)
+    parser.add_argument("--image_dir", type=str, default=None)
     parser.add_argument("--result_dir", type=str, required=True)
 
 
     parser.add_argument("--use_demonstrations", action="store_true")
-    parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip"])
+    parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
+    parser.add_argument("--support_feature_dirs", nargs='+')
+    parser.add_argument("--support_image_dirs", nargs='+')
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
         args.caption_dir,
+        args.feature_dir,
+        args.image_dir,
         args.result_dir,
         args.use_demonstrations,
         args.demonstration_selection,
         args.support_filepaths,
-        args.support_caption_dirs
+        args.support_caption_dirs,
+        args.support_feature_dirs,
+        args.support_image_dirs
     )
 
