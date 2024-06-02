@@ -14,11 +14,11 @@ from utils import load_inference_dataset, load_support_dataset
 from ..matching.tfidf_wrapper import compute_corpus_matrix
 from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 
-from ..matchingbm25_wrapper import bm25_similarity
-from ..matchingbm25_wrapper import get_top_k_similar as bm25_sampler
+from ..matching.bm25_wrapper import bm25_similarity
+from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
 
-# from clip_wrapper import clip_corpus_similarity
-# from clip_wrapper import get_top_k_similar as get_topk_clip_sampler
+from ..matching.clip_wrapper import clip_corpus_similarity
+from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
 
 # from sift import sift_corpus_similarity
 # from sift import get_top_k_similar as get_topk_sift_sampler
@@ -75,6 +75,15 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             sim_matrix = bm25_similarity(query, corpus)
             sample_indices = bm25_sampler(sim_matrix, classes, k)
             samples = [support_annots[index] for index in sample_indices]
+
+        if demonstration_selection == "clip":
+            query_image_features = content['features']
+            corpus_features = [annotation['features'] for annotation in support_annots if 'features' in annotation]
+            corpus_annotations = [annotation for annotation in support_annots if 'features' in annotation]
+
+            sim_matrix = clip_corpus_similarity(query_image_features, corpus_features)
+            sample_indices = clip_sampler(sim_matrix, classes, k)
+            samples = [corpus_annotations[index] for index in sample_indices]
 
         for s in samples:
             messages.append(

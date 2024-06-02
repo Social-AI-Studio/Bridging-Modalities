@@ -25,6 +25,37 @@ def clip_similarity(image_path1, image_path2):
     
     return similarity
 
+
+def load_features(features_dir):
+    data_list = []
+    # Iterate over all files in the folder
+    for filename in os.listdir(features_dir):
+        if filename.endswith('.pkl'):
+            file_path = os.path.join(features_dir, filename)
+            with open(file_path, 'rb') as file:
+                data = pickle.load(file)
+                data_list.append(data)
+
+    return data_list
+
+def clip_corpus_similarity(query_features, corpus_features):
+
+    cos = torch.nn.CosineSimilarity(dim=0)
+
+    sim_vector = []
+    for feature in corpus_features:
+        similarity = cos(query_features[0], feature[0]).item()
+        similarity = (similarity + 1) / 2
+        sim_vector.append(similarity)
+
+    return sim_vector
+
+def get_top_k_similar(sim_matrix, labels, k):
+    import numpy as np
+    sim_matrix = np.array(sim_matrix)
+    top_k_indices = sim_matrix.argsort()[-k:][::-1]
+    return top_k_indices
+
 def main(annotation_filepath, img_folder,  output_folder):
     # df = pd.read_json(annotation_filepath, lines=True)
     os.makedirs(output_folder, exist_ok=True)
