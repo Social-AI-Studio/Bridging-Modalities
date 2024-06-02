@@ -25,19 +25,6 @@ def clip_similarity(image_path1, image_path2):
     
     return similarity
 
-
-def load_features(features_dir):
-    data_list = []
-    # Iterate over all files in the folder
-    for filename in os.listdir(features_dir):
-        if filename.endswith('.pkl'):
-            file_path = os.path.join(features_dir, filename)
-            with open(file_path, 'rb') as file:
-                data = pickle.load(file)
-                data_list.append(data)
-
-    return data_list
-
 def clip_corpus_similarity(query_features, corpus_features):
 
     cos = torch.nn.CosineSimilarity(dim=0)
