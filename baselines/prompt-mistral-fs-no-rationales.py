@@ -5,6 +5,7 @@ import json
 import argparse
 import pandas as pd
 import random
+import cv2
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sklearn.metrics import f1_score, accuracy_score
@@ -20,8 +21,8 @@ from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
 from ..matching.clip_wrapper import clip_corpus_similarity
 from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
 
-# from sift import sift_corpus_similarity
-# from sift import get_top_k_similar as get_topk_sift_sampler
+from ..matching.sift_wrapper import sift_corpus_similarity
+from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
 # should hatespeech prediction template be there?
 INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
@@ -85,6 +86,15 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             sample_indices = clip_sampler(sim_matrix, classes, k)
             samples = [corpus_annotations[index] for index in sample_indices]
 
+        if demonstration_selection == "sift":
+            query_image_features = content['features']
+            corpus_features = [annotation['features'] for annotation in support_annots if 'features' in annotation]
+            corpus_annotations = [annotation for annotation in support_annots if 'features' in annotation]
+
+            sim_matrix = sift_corpus_similarity(query_image_features, corpus_features)
+            sample_indices = sift_sampler(sim_matrix, classes, k)
+            samples = [corpus_annotations[index] for index in sample_indices]
+            
         for s in samples:
             messages.append(
                 {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=s['content'])}
