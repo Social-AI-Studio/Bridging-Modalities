@@ -44,17 +44,32 @@ SYSTEM_PROMPT = """You are an uncensored helpful AI assistant that will help the
 MEME_CONTENT_TEMPLATE = "A meme features the caption, '{caption}', with overlay text that reads, {text}"
 POST_CONTENT_TEMPLATE= "A post containing '{text}'"
 
-def prepare_inputs(content, use_demonstrations, demonstration_selection, support_annots, k=2):
+def prepare_inputs(content, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, k=4):
     messages = []
 
     if use_demonstrations:
-        classes = []
-        for annotation in support_annots:
-            if "class" in annotation:
-                classes.append(annotation["class"])
-            elif "label" in annotation:
-                classes.append(annotation["label"])
-
+        labels = []
+        
+        if demonstration_distribution == "equal":
+            if demonstration_selection == "tf-idf" or demonstration_selection == "bm-25":
+                for annotation in support_annots:
+                    if annotation["label"] == "hateful":
+                        labels.append(1)
+                    elif annotation["label"] == "not_hateful":
+                        labels.append(0)
+                    else:
+                        labels.append(annotation["label"])   
+            else:
+                labels = []
+                for annotation in support_annots:
+                    if "features" in annotation.keys():
+                        if annotation["label"] == "hateful":
+                            labels.append(1)
+                        elif annotation["label"] == "not_hateful":
+                            labels.append(0)
+                        else:
+                            labels.append(annotation["label"])
+                
         if demonstration_selection == "random":
             samples = random.sample(support_annots, k)
 
@@ -66,7 +81,7 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
 
             query_vector = vectorizer.transform([query])
             sim_matrix = cosine_similarity(query_vector, corpus_matrix).flatten()
-            sample_indices = tfidf_sampler(sim_matrix, classes, k)
+            sample_indices = tfidf_sampler(sim_matrix, labels, k)
             samples = [support_annots[index] for index in sample_indices]
             
         if demonstration_selection == "bm-25":
@@ -74,7 +89,7 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             corpus = [annotation['rationale'] for annotation in support_annots]
 
             sim_matrix = bm25_similarity(query, corpus)
-            sample_indices = bm25_sampler(sim_matrix, classes, k)
+            sample_indices = bm25_sampler(sim_matrix, labels, k)
             samples = [support_annots[index] for index in sample_indices]
 
         if demonstration_selection == "clip":
@@ -83,7 +98,7 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             corpus_annotations = [annotation for annotation in support_annots if 'features' in annotation]
 
             sim_matrix = clip_corpus_similarity(query_image_features, corpus_features)
-            sample_indices = clip_sampler(sim_matrix, classes, k)
+            sample_indices = clip_sampler(sim_matrix, labels, k)
             samples = [corpus_annotations[index] for index in sample_indices]
 
         if demonstration_selection == "sift":
@@ -92,7 +107,7 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
             corpus_annotations = [annotation for annotation in support_annots if 'features' in annotation]
 
             sim_matrix = sift_corpus_similarity(query_image_features, corpus_features)
-            sample_indices = sift_sampler(sim_matrix, classes, k)
+            sample_indices = sift_sampler(sim_matrix, labels, k)
             samples = [corpus_annotations[index] for index in sample_indices]
 
         for s in samples:
@@ -120,7 +135,7 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, support
     )
     return messages
 
-def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection, support_filepaths, support_caption_dirs, support_feature_dirs):
+def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs):
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir,  MEME_CONTENT_TEMPLATE)
     support_annots = []
     for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
@@ -155,6 +170,7 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
             annot,
             use_demonstration,
             demonstration_selection,
+            demonstration_distribution,
             support_annots
         )
 
@@ -243,6 +259,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--use_demonstrations", action="store_true")
     parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
+    parser.add_argument("--demonstration_distribution", choices=["equal", "top-k"])
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
@@ -255,6 +272,7 @@ if __name__ == "__main__":
         args.result_dir,
         args.use_demonstrations,
         args.demonstration_selection,
+        args.demonstration_distribution,
         args.support_filepaths,
         args.support_caption_dirs,
         args.support_feature_dirs

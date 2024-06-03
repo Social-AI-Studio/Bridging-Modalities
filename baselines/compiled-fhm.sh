@@ -20,7 +20,8 @@ python3 prompt-mistral-fs-no-rationales.py \
     --feature_dir /mnt/data1/datasets/memes/cmtl-rag/fhm/embeddings/sift \
     --result_dir ../results/baselines/mistral-fs-no-rationales/fhm_finegrained \
     --use_demonstrations \
-    --demonstration_selection "sift" \
+    --demonstration_selection "bm-25" \
+    --demonstration_distribution "top-k" \
     --support_filepaths $LATENT_HATRED $MMHS \
     --support_caption_dirs "" /mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco \
     --support_feature_dirs "" /mnt/data1/datasets/memes/cmtl-rag/mmhs/embeddings/sift 
