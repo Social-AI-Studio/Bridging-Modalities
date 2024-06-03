@@ -44,15 +44,19 @@ def get_top_k_similar(sim_matrix, labels, k):
     all_indices = sim_matrix.argsort()[::-1]
     label_counter = {0: 0, 1: 0}
     equal_indices = []
+    index_label_pairs = []
     target_count = k // len(label_counter)
-
+    
     for index in all_indices:
         label = labels[index]
         if label_counter[label] < target_count:
-            equal_indices.append(index)
+            index_label_pairs.append((index, label))
             label_counter[label] += 1
-        if len(equal_indices) == k:
+        if len(index_label_pairs) == k:
             break
+    
+    sorted_list = sorted(index_label_pairs, key=lambda x: x[1], reverse=True)
+    equal_indices = [x[0] for x in sorted_list]
     return equal_indices
 
 def main(annotation_filepath, img_folder,  output_folder):
