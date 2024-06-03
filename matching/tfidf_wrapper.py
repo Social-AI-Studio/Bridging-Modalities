@@ -1,7 +1,10 @@
+import os
 import argparse
+import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from utils import load_inference_dataset, load_support_dataset
 
 
 def compute_corpus_matrix(corpus):
@@ -13,54 +16,115 @@ def compute_corpus_matrix(corpus):
     
     return tfidf_matrix, vectorizer
 
-def get_top_k_similar(sim_matrix, labels, k):
+def get_top_k_similar(sim_vector, labels, k, selection):
+    if selection == "equal":
+        indices = sim_vector.argsort()[::-1]
+        
+        label_counter = {0: 0, 1: 0}
+        count_per_label = k // len(label_counter)
+        records = []
+        
+        for ind in indices:
+            label = labels[ind]
+            prob = sim_vector[ind]
 
-    top_k_indices = sim_matrix.argsort()[-k:][::-1]
+            if label_counter[label] < count_per_label:
+                records.append((ind, prob, label))
+                label_counter[label] += 1
+
+            if len(records) == k:
+                break
+
+        return records
+    else:
+        indices = sim_vector.argsort()[-k:][::-1]
+
+        records = []
+        for ind in indices:
+            label = labels[ind]
+            prob = sim_vector[ind]
+
+            records.append((ind, prob, label))
+
+        return records
+
+def main(
+        annotation_filepath,
+        caption_dir,
+        support_filepaths,
+        support_caption_dirs,
+        output_filepath
+    ):
     
-    if labels == []:
-        return top_k_indices
-    
-    all_indices = sim_matrix.argsort()[::-1]
-    label_counter = {0: 0, 1: 0}
-    equal_indices = []
-    index_label_pairs = []
-    target_count = k // len(label_counter)
-    
-    for index in all_indices:
-        label = labels[index]
-        if label_counter[label] < target_count:
-            index_label_pairs.append((index, label))
-            label_counter[label] += 1
-        if len(index_label_pairs) == k:
-            break
-    
-    sorted_list = sorted(index_label_pairs, key=lambda x: x[1], reverse=True)
-    equal_indices = [x[0] for x in sorted_list]
-    return equal_indices
+    if os.path.exists(output_filepath):
+        print("Loading existing similarity matrix...")
+        with open(output_filepath, 'rb') as f:
+            sim_matrix = np.load(f)
+            labels = np.load(f)
+    else:
+        # Load the inference annotations
+        inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
+        print("Num Inference Examples:", len(inference_annots))
+        
+        # Load the support annotations
+        support_annots = []
+        for filepath, support_caption_dir in zip(support_filepaths, support_caption_dirs):
+            annots = load_support_dataset(filepath, support_caption_dir, None)
+            support_annots += annots
+        # corpus = df['mistral_instruct_statement'].tolist()
+        # classes = df['class'].tolist()
+        print("Num Support Examples:", len(support_annots))
 
-def main(annotation_filepath):
-    df = pd.read_json(annotation_filepath, lines=True)
-    corpus = df['mistral_instruct_statement'].tolist()
-    classes = df['class'].tolist()
+        # Prepare corpus
+        corpus = [] 
+        labels = []
+        for idx, record in enumerate(support_annots):
+            corpus.append(record['content_for_retrieval'])
+            labels.append(record['label'])
+        
+        corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
+        print("Corpus Matrix:", corpus_matrix.shape)
 
-    # Temporary query
-    query = "What is my name"
+        # Prepare inference queries
+        queries = []
+        for idx, record in enumerate(inference_annots):
+            queries.append(record['content_for_retrieval'])
 
-    # Prepare corpus
-    corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
+        query_vectors = vectorizer.transform(queries)
+        print("Query Vectors:", query_vectors.shape)
 
-    # Transform query and retrieve top-k similar records
-    query_vector = vectorizer.transform([query])
-    sim_matrix = cosine_similarity(query_vector, corpus_matrix).flatten()
-    similar_entries = get_top_k_similar(sim_matrix, classes, 4)
+        # Compute cosine similarity
+        sim_matrix = cosine_similarity(query_vectors, corpus_matrix)
+        print("Similarity Matrices:", sim_matrix.shape)
+        
+        with open(output_filepath, 'wb') as f:
+            np.save(f, sim_matrix)
+            np.save(f, np.array(labels))
 
+    # Example: Getting top 4 similar records for first record
+    sim_vector = sim_matrix[0]
+    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
+    print(similar_entries)
+
+    sim_vector = sim_matrix[0]
+    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="equal")
     print(similar_entries)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Converting Interpretations to Graph")
-    parser.add_argument("--annotation_filepath", type=str, required=True)
+    parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
+    parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
+    parser.add_argument("--caption_dir", type=str, default=None)
+
+    parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")
+    parser.add_argument("--support_caption_dirs", nargs='+')
+
+    parser.add_argument("--output_filepath", type=str, required=True, help="The support datasets")
     args = parser.parse_args()
 
     main(
-        args.annotation_filepath
+        args.annotation_filepath,
+        args.caption_dir,
+        args.support_filepaths,
+        args.support_caption_dirs,
+        args.output_filepath
     )
