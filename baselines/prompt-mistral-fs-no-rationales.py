@@ -13,13 +13,13 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
-from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
+# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
+# from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
 # from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-
+from bm25_wrapper import get_top_k_similar as tfidf_sampler
 
 # should hatespeech prediction template be there?
 INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
@@ -60,9 +60,9 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, demonst
             query = content["content_for_retrieval"]
             corpus = [annotation['rationale'] for annotation in support_annots]
 
-            sim_matrix = bm25_similarity(query, corpus)
-            sample_indices = bm25_sampler(sim_matrix, labels, k)
-            samples = [support_annots[index] for index in sample_indices]
+            similar_entries = tfidf_sampler(sim_matrix[0], labels, k, selection="random")
+            similar_entry_indices = [entry[0] for entry in similar_entries]
+            samples = [support_annots[index] for index in similar_entry_indices]
 
         if demonstration_selection == "clip":
             query_image_features = content['features']
