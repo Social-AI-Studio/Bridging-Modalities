@@ -1,2 +1,3 @@
 matching/surf.py
-baselines/__pycache__
+*/__pycache__
+*/.ipynb_checkpoints

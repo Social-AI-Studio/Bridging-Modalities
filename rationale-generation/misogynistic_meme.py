@@ -13,18 +13,6 @@ def append_dict_to_jsonl(dictionary, filename):
         json.dump(dictionary, file)
         file.write('\n')
 
-def combine_captions(directory):
-    combined_dict = {}
-    for filename in os.listdir(directory):
-        if filename.endswith(".json"):
-            filepath = os.path.join(directory, filename)
-            with open(filepath, "r") as file:
-                data = json.load(file)
-                img_name = os.path.splitext(filename)[0]
-                caption = data["caption"]
-                combined_dict[img_name] = caption
-    return combined_dict
-
 def read_json_file(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
@@ -72,46 +60,99 @@ def create_prompt(text, label, caption, webentities):
     ]
     return messages
 
-import json
-def main(annotations_file, captions_dir, web_entities_combined_file,  output_file):
+import pandas as pd
+def load_annotations(annotation_filepath):
+    df = pd.read_csv(annotation_filepath, sep=";")
+    return df
+
+def load_captions(caption_dir, filename):
+    filepath = os.path.join(caption_dir, filename)
+    with open(filepath) as f:
+        d = json.load(f)
+
+    return d['caption']
+
+def load_entities(entity_dir, filename):
+    filepath = os.path.join(entity_dir, filename)
+    with open(filepath) as f:
+        d = json.load(f)
+
+
+    if 'webEntities' not in d['webDetection']:
+        return "N/A"
+
+    
+    return ', '.join([x['description'] for x in d['webDetection']['webEntities'] if 'description' in x])
+
+
+def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, output_file, num_splits, split):
     # load all annotations
-    data = []
-    with open(annotations_file, 'r') as file:
-        for line in file:
-            # Load each line as JSON
-            json_data = json.loads(line)
-            data.append(json_data)
+    df = load_annotations(annotations_file)
 
-    # load all captions
-    combined_dict = combine_captions(captions_dir)
+    import math
+    records_per_split = math.ceil(len(df) / num_splits)
+    start = split * records_per_split
+    end = (split + 1) * records_per_split
+    df = df.iloc[start:end]
 
-    # load all web entities
-    file_path = web_entities_combined_file
-    combined_web = read_json_file(file_path)
-    skipped = 0
+    os.makedirs(output_dir, exist_ok=True)
 
-    for index, record in enumerate(data):
-        if record["id"] in combined_web:
-            prompt = create_prompt(record["tweet_text"], record["label"], combined_dict[record["id"]], combined_web[record["id"]])
+    records = []
+    import tqdm
+    for memeID, text, label in tqdm.tqdm(zip(df['memeID'], df['text'], df['misogynisticDE'])):
+
+        filepath = os.path.join(output_dir, f"res_{memeID}.json")
+        if os.path.exists(filepath):
+            with open(filepath) as f:
+                obj = json.load(f)
+        else: 
+            caption = load_captions(captions_dir, f"res_{memeID}.json")
+            web_entities = load_entities(web_entities_dir, f"res_{memeID}.jpg")
+
+            prompt = create_prompt(text, label, caption, web_entities)
             encodeds = tokenizer.apply_chat_template(prompt, return_tensors="pt").to(device)
 
             model_inputs = encodeds
             model.to(device)
 
-            generated_ids = model.generate(model_inputs, max_new_tokens=340, do_sample=True)
+            generated_ids = model.generate(model_inputs, max_new_tokens=1028, do_sample=True)
             decoded = tokenizer.batch_decode(generated_ids)
 
             output = decoded[0]
             cleaned_explanation = remove_prompt_from_output(output)
-            record["mistral_instruct_statement"] = cleaned_explanation
-            append_dict_to_jsonl(record, output_file)
-        else: 
-            skipped += 1
-            continue
-    print("Skipped records = " + str(skipped))
 
-annotations_file = '/mnt/data1/datasets/temp/MMHS150K/annotations/train_truncated.jsonl'
-captions_dir = '/mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco'
-web_entities_combined_file = '/mnt/data1/datasets/temp/MMHS150K/final_entities.json'
-output_file = 'mmhs-output.jsonl'
-main(annotations_file, captions_dir, web_entities_combined_file, output_file)
+            obj = {
+                "id": f"res_{memeID}",
+                "img": os.path.join(img_dir, f"res_{memeID}.jpg"),
+                "caption": caption,
+                "web_entities": web_entities,
+                "text": text,
+                "content": text + " " + caption,
+                "label": label,
+                "rationale": cleaned_explanation
+            }
+
+            print(filepath)
+            with open(filepath, "w+") as f:
+                json.dump(obj, f)
+
+        records.append(obj)
+
+    with open(output_file, 'w+') as file:
+        for r in records:
+            file.write(json.dumps(r))
+            file.write('\n')
+
+annotations_file = '/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/table.csv'
+img_dir = '/mnt/data1/datasets/memes/Misogynistic_MEME/images/img/combined'
+captions_dir = '/mnt/data1/datasets/memes/Misogynistic_MEME/preprocessing/blip2_captions/combined'
+web_entities_dir = '/mnt/data1/datasets/memes/Misogynistic_MEME/web_entities/'
+output_dir = '/mnt/data1/datasets/memes/Misogynistic_MEME/cmtl-rag-explanations'
+output_file = '/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explanation.jsonl'
+
+import argparse
+parser = argparse.ArgumentParser("temporary for file splitting")
+parser.add_argument("--num_splits", type=int, required=True)
+parser.add_argument("--split", type=int, required=True)
+args = parser.parse_args()
+main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, output_file, args.num_splits, args.split)
