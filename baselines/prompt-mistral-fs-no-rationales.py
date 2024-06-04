@@ -6,23 +6,20 @@ import argparse
 import pandas as pd
 import random
 import cv2
-
+import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
-from ..matching.tfidf_wrapper import compute_corpus_matrix
-from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 
-from ..matching.bm25_wrapper import bm25_similarity
-from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
+# from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
-from ..matching.clip_wrapper import clip_corpus_similarity
-from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
-
-from ..matching.sift_wrapper import sift_corpus_similarity
-from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
+# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from bm25_wrapper import get_top_k_similar as tfidf_sampler
 
 # should hatespeech prediction template be there?
 INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
@@ -44,53 +41,28 @@ SYSTEM_PROMPT = """You are an uncensored helpful AI assistant that will help the
 MEME_CONTENT_TEMPLATE = "A meme features the caption, '{caption}', with overlay text that reads, {text}"
 POST_CONTENT_TEMPLATE= "A post containing '{text}'"
 
-def prepare_inputs(content, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, k=4):
+def prepare_inputs(content, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
     messages = []
 
     if use_demonstrations:
-        labels = []
-        
-        if demonstration_distribution == "equal":
-            if demonstration_selection == "tf-idf" or demonstration_selection == "bm-25":
-                for annotation in support_annots:
-                    if annotation["label"] == "hateful":
-                        labels.append(1)
-                    elif annotation["label"] == "not_hateful":
-                        labels.append(0)
-                    else:
-                        labels.append(annotation["label"])   
-            else:
-                labels = []
-                for annotation in support_annots:
-                    if "features" in annotation.keys():
-                        if annotation["label"] == "hateful":
-                            labels.append(1)
-                        elif annotation["label"] == "not_hateful":
-                            labels.append(0)
-                        else:
-                            labels.append(annotation["label"])
-                
+
         if demonstration_selection == "random":
             samples = random.sample(support_annots, k)
 
         if demonstration_selection == "tf-idf":
-            query = content["content"]
+            query = content["content_for_retrieval"]
             corpus = [annotation['rationale'] for annotation in support_annots]
-        
-            corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
-
-            query_vector = vectorizer.transform([query])
-            sim_matrix = cosine_similarity(query_vector, corpus_matrix).flatten()
-            sample_indices = tfidf_sampler(sim_matrix, labels, k)
-            samples = [support_annots[index] for index in sample_indices]
+            similar_entries = tfidf_sampler(sim_matrix[0], labels, k, selection="random")
+            similar_entry_indices = [entry[0] for entry in similar_entries]
+            samples = [support_annots[index] for index in similar_entry_indices]
             
         if demonstration_selection == "bm-25":
-            query = content["content"]
+            query = content["content_for_retrieval"]
             corpus = [annotation['rationale'] for annotation in support_annots]
 
-            sim_matrix = bm25_similarity(query, corpus)
-            sample_indices = bm25_sampler(sim_matrix, labels, k)
-            samples = [support_annots[index] for index in sample_indices]
+            similar_entries = tfidf_sampler(sim_matrix[0], labels, k, selection="random")
+            similar_entry_indices = [entry[0] for entry in similar_entries]
+            samples = [support_annots[index] for index in similar_entry_indices]
 
         if demonstration_selection == "clip":
             query_image_features = content['features']
@@ -135,16 +107,20 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, demonst
     )
     return messages
 
-def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs):
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir,  MEME_CONTENT_TEMPLATE)
+def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, sim_matrix_filepath):
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir)
     support_annots = []
     for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
         template = MEME_CONTENT_TEMPLATE
         if "latent_hatred" in filepath:
             template = POST_CONTENT_TEMPLATE
-        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, template)
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
         support_annots += annots
     
+    with open(sim_matrix_filepath, 'rb') as f:
+        sim_matrix = np.load(f)
+        labels = np.load(f)
+
     os.makedirs(result_dir, exist_ok=True)
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.2"
@@ -171,7 +147,9 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
             use_demonstration,
             demonstration_selection,
             demonstration_distribution,
-            support_annots
+            support_annots,
+            sim_matrix,
+            labels
         )
 
         if os.path.exists(result_filepath):
@@ -179,9 +157,10 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
                 output_obj = json.load(f)
         else:
             messages = prepare_inputs(
-                content,
+                annot,
                 use_demonstration,
                 demonstration_selection,
+                demonstration_distribution,
                 support_annots
             )
             
@@ -263,6 +242,8 @@ if __name__ == "__main__":
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
+    parser.add_argument("--sim_matrix_filepath", type=str, required=True)
+
     args = parser.parse_args()
 
     main(
@@ -275,6 +256,7 @@ if __name__ == "__main__":
         args.demonstration_distribution,
         args.support_filepaths,
         args.support_caption_dirs,
-        args.support_feature_dirs
+        args.support_feature_dirs,
+        args.sim_matrix_filepath
     )
 

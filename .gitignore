@@ -1,3 +1,7 @@
 matching/surf.py
 */__pycache__
 */.ipynb_checkpoints
+
+baselines/tfidf_wrapper.py
+baselines/utils.py
+matching/utils.py

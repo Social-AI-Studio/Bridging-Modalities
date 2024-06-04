@@ -24,4 +24,5 @@ python3 prompt-mistral-fs-no-rationales.py \
     --demonstration_distribution "top-k" \
     --support_filepaths $LATENT_HATRED $MMHS \
     --support_caption_dirs "" /mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco \
-    --support_feature_dirs "" /mnt/data1/datasets/memes/cmtl-rag/mmhs/embeddings/sift 
+    --support_feature_dirs "" /mnt/data1/datasets/memes/cmtl-rag/mmhs/embeddings/sift \
+    --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_tfidf_matching.npy
