@@ -95,7 +95,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
         if "mmhs" in annotation_filepath.lower():
             obj["img"] = f"{annot['id']}.jpg"
             obj["text"] = annot['tweet_text']
-            obj["label"] = annot['label']
+            obj["label"] = 0 if annot['label'] == "not_hateful" else 1
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
