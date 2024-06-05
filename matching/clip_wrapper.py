@@ -104,9 +104,11 @@ def main(
         annotation_filepath,
         caption_dir,
         feature_dir,
+        image_dir, 
         support_filepaths,
         support_caption_dirs,
         support_feature_dirs,
+        support_image_dirs,
         output_filepath
     ):
     
@@ -117,12 +119,20 @@ def main(
             labels = np.load(f)
     else:
         # Load the inference annotations
+        if not os.path.exists(feature_dir):
+            print("Inference features not generated. Generating...")
+            # generate features for them 
+            generate_features(annotation_filepath, image_dir, feature_dir)
         inference_annots = load_inference_dataset(annotation_filepath, caption_dir, feature_dir)
         print("Num Inference Examples:", len(inference_annots))
         
         # Load the support annotations
         support_annots = []
-        for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
+        for filepath, support_caption_dir, support_feature_dir, support_image_dir, in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
+            if not os.path.exists(support_feature_dir) and support_feature_dir != "":
+                # generate features for them 
+                print("Support features not generated. Generating...")
+                generate_features(filepath, support_image_dir, support_feature_dir)
             annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
             support_annots += annots
         # corpus = df['mistral_instruct_statement'].tolist()
@@ -141,16 +151,19 @@ def main(
         for idx, record in enumerate(inference_annots):
             queries.append(record['features'])
 
-        result = []
+        sim_matrix = []
         for query in queries:
             sim_vector = clip_corpus_similarity(query, corpus)
-            result.append(sim_vector)
+            sim_matrix.append(sim_vector)
 
         with open(output_filepath, 'wb') as f:
-            np.save(f, np.array(result))
+            np.save(f, np.array(sim_matrix))
             np.save(f, np.array(labels))
 
+        sim_matrix = np.array(sim_matrix)
+        labels = np.array(labels)
     # Example: Getting top 4 similar records for first record
+    
     sim_vector = sim_matrix[0]
     similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
     print(similar_entries)
@@ -160,14 +173,16 @@ def main(
     print(similar_entries)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
+    parser = argparse.ArgumentParser("Computing Text Similarity - CLIP")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
     parser.add_argument("--caption_dir", type=str, default=None)
     parser.add_argument("--feature_dir", type=str, default=None)
+    parser.add_argument("--image_dir", type=str, default=None)
 
     parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
+    parser.add_argument("--support_image_dirs", nargs='+')
 
     parser.add_argument("--output_filepath", type=str, required=True, help="The support datasets")
     args = parser.parse_args()
@@ -176,8 +191,10 @@ if __name__ == "__main__":
         args.annotation_filepath,
         args.caption_dir,
         args.feature_dir,
+        args.image_dir,
         args.support_filepaths,
         args.support_caption_dirs,
         args.support_feature_dirs,
+        args.support_image_dirs,
         args.output_filepath
     )
