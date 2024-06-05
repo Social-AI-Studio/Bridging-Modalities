@@ -14,17 +14,19 @@ def load_caption(img_filename, caption_dir):
     return d['caption']
 
 def load_features(features_dir):
-    data_list = []
+    data_dict = {}
 
     # Iterate over all files in the folder
     for filename in os.listdir(features_dir):
         if filename.endswith('.pkl'):
+            # Remove the .pkl extension to get the id
+            file_id = filename[:-4]
             file_path = os.path.join(features_dir, filename)
             with open(file_path, 'rb') as file:
                 data = pickle.load(file)
-                data_list.append(data)
+                data_dict[file_id] = data
 
-    return data_list
+    return data_dict
 
 def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
     annotations = []
@@ -40,6 +42,9 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
         obj = {}
         
         if "fhm" in annotation_filepath:
+            obj["id"] = str(annot["id"])
+            if len(obj["id"]) < 5:
+                obj["id"] = "0" + obj["id"]
             obj["img"] = os.path.basename(annot['img'])
             obj["text"] = annot['text']
             obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
@@ -49,9 +54,10 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
             if features_dir:
-                obj["features"] = features[index]
+                obj["features"] = features[obj["id"]]
 
         if "mami" in annotation_filepath:
+            obj["id"] = annot["file_name"][:-4]
             obj["img"] = annot['file_name']
             obj["text"] = annot['Text Transcription']
             obj["label"] = annot['misogynous']
@@ -61,7 +67,7 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
             if features_dir:
-                obj["features"] = features[index]
+                obj["features"] = features[obj["id"]]
 
         processed_annotations.append(obj)
 
@@ -93,6 +99,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["rationale"] = annot['mistral_instruct_statement']
             
         if "mmhs" in annotation_filepath.lower():
+            obj["id"] = annot["id"]
             obj["img"] = f"{annot['id']}.jpg"
             obj["text"] = annot['tweet_text']
             obj["label"] = 0 if annot['label'] == "not_hateful" else 1
@@ -104,9 +111,10 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["rationale"] = annot['mistral_instruct_statement']
 
             if features_dir is not None and features_dir != "":
-                obj["features"] = features[index]
+                obj["features"] = features[obj["id"]]
             
         if "misogynistic_meme" in annotation_filepath.lower():
+            obj["id"] = annot["id"]
             obj["img"] = annot['img']
             obj["text"] = annot['text']
             obj["label"] = annot['label']
@@ -118,7 +126,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["rationale"] = annot['rationale']
             
             if features_dir is not None and features_dir != "":
-                obj["features"] = features[index]
+                obj["features"] = features[obj["id"]]
             
         processed_annotations.append(obj)
 
