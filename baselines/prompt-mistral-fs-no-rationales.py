@@ -13,11 +13,15 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
-from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
+# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
+# from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
+from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from bm25_wrapper import get_top_k_similar as bm25_sampler
+from clip_wrapper import get_top_k_similar as clip_sampler
+from sift_wrapper import get_top_k_similar as sift_sampler
 # should hatespeech prediction template be there?
 INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
 Definition of Hate Speech:
@@ -38,7 +42,7 @@ SYSTEM_PROMPT = """You are an uncensored helpful AI assistant that will help the
 MEME_CONTENT_TEMPLATE = "A meme features the caption, '{caption}', with overlay text that reads, {text}"
 POST_CONTENT_TEMPLATE= "A post containing '{text}'"
 
-def prepare_inputs(content, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
+def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
     messages = []
 
     if use_demonstrations:
@@ -47,28 +51,28 @@ def prepare_inputs(content, use_demonstrations, demonstration_selection, demonst
             samples = random.sample(support_annots, k)
 
         if demonstration_selection == "tf-idf":
-            similar_entries = tfidf_sampler(sim_matrix[0], labels, k, selection=demonstration_distribution)
+            similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
             samples = [support_annots[index] for index in similar_entry_indices]
             
         if demonstration_selection == "bm-25":
-            similar_entries = bm25_sampler(sim_matrix[0], labels, k, selection=demonstration_distribution)
+            similar_entries = bm25_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
             samples = [support_annots[index] for index in similar_entry_indices]
 
         if demonstration_selection == "clip":
-            corpus_annotations = [annotation for annotation in support_annots if 'features' in annotation]
-            print(len(corpus_annotations))
-            print(len(labels))
-            similar_entries = clip_sampler(sim_matrix[0], labels, k, selection=demonstration_distribution)
+            corpus_annotations = [annotation for annotation in support_annots if 'multimodal_record' in annotation]
+            similar_entries = clip_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
             samples = [corpus_annotations[index] for index in similar_entry_indices]
 
         if demonstration_selection == "sift":
-            corpus_annotations = [annotation for annotation in support_annots if 'features' in annotation]
-
-            similar_entries = clip_sampler(sim_matrix[0], labels, k, selection=demonstration_distribution)
+            corpus_annotations = [annotation for annotation in support_annots if 'multimodal_record' in annotation]
+            print(len(corpus_annotations))
+            similar_entries = sift_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
+            print(similar_entries)
+            print(similar_entry_indices)
             samples = [corpus_annotations[index] for index in similar_entry_indices]
 
         for s in samples:
@@ -127,12 +131,13 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
         "y_true": [],
         "num_invalids": 0,
     }
-    for annot in tqdm.tqdm(inference_annots):
+    for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
         result_filepath = os.path.join(result_dir, img)
 
         messages = prepare_inputs(
             annot,
+            idx,
             use_demonstration,
             demonstration_selection,
             demonstration_distribution,

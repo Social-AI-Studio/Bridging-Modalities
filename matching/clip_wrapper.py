@@ -59,8 +59,8 @@ def get_top_k_similar(sim_vector, labels, k, selection):
 
             if len(records) == k:
                 break
-
-        return records
+        records_sorted_by_label = sorted(records, key=lambda x: x[2], reverse=True)
+        return records_sorted_by_label
     else:
         indices = sim_vector.argsort()[-k:][::-1]
 

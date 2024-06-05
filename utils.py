@@ -53,8 +53,10 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
-            if features_dir:
+            if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
+
+            obj["multimodal_record"] = True
 
         if "mami" in annotation_filepath:
             obj["id"] = annot["file_name"][:-4]
@@ -66,8 +68,10 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
             obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
 
-            if features_dir:
+            if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
+
+            obj["multimodal_record"] = True
 
         processed_annotations.append(obj)
 
@@ -112,6 +116,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
 
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
+
+            obj["multimodal_record"] = True
             
         if "misogynistic_meme" in annotation_filepath.lower():
             obj["id"] = annot["id"]
@@ -127,6 +133,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
+
+            obj["multimodal_record"] = True
             
         processed_annotations.append(obj)
 
