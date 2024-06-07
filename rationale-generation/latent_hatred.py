@@ -90,7 +90,6 @@ def main(annotations_file, output_file):
         cleaned_explanation = remove_prompt_from_output(output)
         record["mistral_instruct_statement"] = cleaned_explanation
         append_dict_to_jsonl(record, output_file)
-        exit()
         
 annotations_file = '/mnt/data1/datasets/hatespeech/latent_hatred/truncated/train.jsonl'
 output_file = 'check.jsonl'
