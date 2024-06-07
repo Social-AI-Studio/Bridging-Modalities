@@ -8,11 +8,6 @@ tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
 
 #util scripts
 import json
-def append_dict_to_jsonl(dictionary, filename):
-    with open(filename, 'a') as file:
-        json.dump(dictionary, file)
-        file.write('\n')
-
 def read_json_file(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
@@ -57,7 +52,8 @@ def create_prompt(text, label):
         {"role": "assistant", "content": f"Answer: {hateful}"},
         {"role": "user", "content": f"Briefly provide an explanation, in no more than three points, for the post being perceived as {hateful}. Your explanation should address the targeted group, any derogatory imagery or language used, and the impact it has on perpetuating bias, stereotypes, prejudice, discrimination or inciting harm."},
         {"role": "assistant", "content": "Answer: "},
-]
+    ]
+    
     return messages
 
 
@@ -66,17 +62,32 @@ def create_prompt(text, label):
 # test annotations - /mnt/data1/datasets/hatespeech/latent_hatred/truncated/test.jsonl
 
 import json
-def main(annotations_file, output_file):
+def main(annotations_file, output_dir, num_splits, split):
     # load all annotations
     data = []
     with open(annotations_file, 'r') as file:
         for line in file:
             # Load each line as JSON
-            json_data = json.loads(line)
-            data.append(json_data)
+            record = json.loads(line)
 
+            # Remove records with existing rationales
+            output_filepath = os.path.join(output_dir, f"{record['ID']}.json")
+            if os.path.exists(output_filepath):
+                continue
+            
+            data.append(record)
+
+    print("Number Records Remaining:", len(data))
+    import math
+    records_per_split = math.ceil(len(data) / num_splits)
+    start = split * records_per_split
+    end = (split + 1) * records_per_split
+    data = data[start:end]
+    print("Split:", f"{split}/{num_splits}")
+    print("Number Records Processing:", len(data))
 
     for index, record in enumerate(data):
+        print(record["ID"])
         prompt = create_prompt(record["post"], record["class"])
         encodeds = tokenizer.apply_chat_template(prompt, return_tensors="pt").to(device)
 
@@ -88,9 +99,19 @@ def main(annotations_file, output_file):
 
         output = decoded[0]
         cleaned_explanation = remove_prompt_from_output(output)
-        record["mistral_instruct_statement"] = cleaned_explanation
-        append_dict_to_jsonl(record, output_file)
+
+        output_filepath = os.path.join(output_dir, f"{record['ID']}.json")
+        with open(output_filepath, "w+") as f:
+            json.dump({"rationale": cleaned_explanation}, f)
         
-annotations_file = '/mnt/data1/datasets/hatespeech/latent_hatred/truncated/train.jsonl'
-output_file = 'check.jsonl'
-main(annotations_file, output_file)
+
+annotations_file = '/mnt/data1/datasets/hatespeech/latent_hatred/annotations/explanations/stage1.jsonl'
+output_dir = "/mnt/data1/datasets/hatespeech/latent_hatred/rationales/mistral-v0.2-7b/"
+
+import argparse
+parser = argparse.ArgumentParser("temporary for file splitting")
+parser.add_argument("--num_splits", type=int, required=True)
+parser.add_argument("--split", type=int, required=True)
+args = parser.parse_args()
+
+main(annotations_file, output_dir, args.num_splits, args.split)

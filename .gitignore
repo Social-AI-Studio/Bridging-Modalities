@@ -5,3 +5,5 @@ matching/surf.py
 baselines/tfidf_wrapper.py
 baselines/utils.py
 matching/utils.py
+
+*.log
