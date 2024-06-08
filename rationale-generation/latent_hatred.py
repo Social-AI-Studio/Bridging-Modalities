@@ -106,7 +106,7 @@ def main(annotations_file, output_dir, num_splits, split):
         
 
 annotations_file = '/mnt/data1/datasets/hatespeech/latent_hatred/annotations/explanations/stage1.jsonl'
-output_dir = "/mnt/data1/aditi/cmtl-rag/rationale-generation/mistral-v0.2-7b/"
+output_dir = "/mnt/data1/datasets/hatespeech/latent_hatred/rationales/mistral-v0.2-7b/"
 
 import argparse
 parser = argparse.ArgumentParser("temporary for file splitting")
