@@ -18,6 +18,9 @@ print("Num. Records:", len(records))
 non_compliance = 0
 for r in records:
     output_filepath = os.path.join(output_dir, f"{r['ID']}.json")
+    if not os.path.exists(output_filepath):
+        continue
+
     with open(output_filepath) as f:
         data = json.load(f)
 
@@ -25,14 +28,17 @@ for r in records:
 
     if 'Targeted Group' not in rationale:
         non_compliance += 1
+        print(output_filepath)
         continue
 
     if 'Derogatory Imagery/Language' not in rationale:
         non_compliance += 1
+        print(output_filepath)
         continue
 
     if 'Impact on Bias/Stereotype' not in rationale:
         non_compliance += 1
+        print(output_filepath)
         continue
 
 print(non_compliance)

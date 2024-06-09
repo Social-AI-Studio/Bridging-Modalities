@@ -54,19 +54,13 @@ def get_top_k_similar(sim_vector, labels, k, selection):
 
 def main(
         annotation_filepath,
-        annotation_content,
         caption_dir,
         support_filepaths,
         support_caption_dirs,
-        support_content,
-        output_filepath,
-        overwrite
+        support_rationale_dirs
     ):
-
-    print("Annotation (Inference) Content:", annotation_content)
-    print("Support Content:", support_content)
     
-    if os.path.exists(output_filepath) and not overwrite:
+    if os.path.exists(output_filepath):
         print("Loading existing similarity matrix...")
         with open(output_filepath, 'rb') as f:
             sim_matrix = np.load(f)
@@ -81,14 +75,15 @@ def main(
         for filepath, support_caption_dir in zip(support_filepaths, support_caption_dirs):
             annots = load_support_dataset(filepath, support_caption_dir, None)
             support_annots += annots
-
+        # corpus = df['mistral_instruct_statement'].tolist()
+        # classes = df['class'].tolist()
         print("Num Support Examples:", len(support_annots))
 
         # Prepare corpus
         corpus = [] 
         labels = []
         for idx, record in enumerate(support_annots):
-            corpus.append(record[support_content])
+            corpus.append(record['content_for_retrieval'])
             labels.append(record['label'])
         
         corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
@@ -97,7 +92,7 @@ def main(
         # Prepare inference queries
         queries = []
         for idx, record in enumerate(inference_annots):
-            queries.append(record[annotation_content])
+            queries.append(record['content_for_retrieval'])
 
         query_vectors = vectorizer.transform(queries)
         print("Query Vectors:", query_vectors.shape)
@@ -112,34 +107,27 @@ def main(
 
     # Example: Getting top 4 similar records for first record
     sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, 6, selection="random")
+    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
     print(similar_entries)
 
     sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, 6, selection="equal")
+    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="equal")
     print(similar_entries)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
-    parser.add_argument("--annotation_content", type=str, required=True, choices=["content_text", "content_text_caption"])
-    parser.add_argument("--caption_dir", type=str, default=None)
+    parser.add_argument("--caption_dir", type=str)
 
     parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")
     parser.add_argument("--support_caption_dirs", nargs='+')
-    parser.add_argument("--support_content", type=str, required=True, choices=["content_text", "content_text_caption", "rationale"])
-
-    parser.add_argument("--output_filepath", type=str, required=True)
-    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--support_rationale_dirs", nargs="+")
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
-        args.annotation_content,
         args.caption_dir,
         args.support_filepaths,
         args.support_caption_dirs,
-        args.support_content,
-        args.output_filepath,
-        args.overwrite
+        args.support_rationale_dirs
     )

@@ -51,7 +51,8 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
-            obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
+            obj["content_text"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
@@ -66,7 +67,8 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
-            obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
+            obj["content_text"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
@@ -94,11 +96,12 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
         if "latent_hatred" in annotation_filepath:
             obj["img"] = "N/A"
             obj["text"] = annot['post']
-            obj["label"] = annot['class']
+            obj["label"] = annot['class_binarized']
 
             obj["caption"] = "N/A"
             obj["content"] = POST_CONTENT_TEMPLATE.format(text=obj['text'])
-            obj["content_for_retrieval"] = f"{obj['text']}"
+            obj["content_text"] = f"{obj['text']}"
+            obj["context_text_caption"] = f"{obj['text']}"
 
             obj["rationale"] = annot['mistral_instruct_statement']
             
@@ -110,7 +113,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
-            obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
+            obj["context_text"] = f"{obj['text']}"
+            obj["context_text_caption"] = f"{obj['text']} {obj['caption']}"
 
             obj["rationale"] = annot['mistral_instruct_statement']
 
@@ -127,7 +131,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["caption"] = annot['caption']
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
-            obj["content_for_retrieval"] = f"{obj['caption']} {obj['text']}"
+            obj["context_text"] = f"{obj['text']}"
+            obj["context_text_caption"] = f"{obj['text']} {obj['caption']}"
 
             obj["rationale"] = annot['rationale']
             
