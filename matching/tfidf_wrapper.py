@@ -60,6 +60,7 @@ def main(
         output_filepath
     ):
     
+    sim_matrix = []
     if os.path.exists(output_filepath):
         print("Loading existing similarity matrix...")
         with open(output_filepath, 'rb') as f:
