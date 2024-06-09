@@ -7,11 +7,11 @@ import pandas as pd
 import random
 import cv2
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import torch
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
-
+import google.generativeai as genai
 
 # from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 # from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
@@ -22,7 +22,7 @@ from tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from bm25_wrapper import get_top_k_similar as bm25_sampler
 from clip_wrapper import get_top_k_similar as clip_sampler
 # from sift_wrapper import get_top_k_similar as sift_sampler
-
+# should hatespeech prediction template be there?
 
 INTRODUCTION = """## Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
@@ -43,10 +43,8 @@ Answer: {answer}
 QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
 Content: {content}
-Answer:
+Answer: 
 """
-
-
 
 def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
     messages = []
@@ -90,13 +88,12 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
                 answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
                 example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], answer=answer)
                 formatted_examples.append(example)
-
+        
     question = QUESTION_TEMPLATE.format(content=content['content'])
     formatted_examples.append(question)
     
+    prompt = "".join(formatted_examples)
 
-    joined_examples = "".join(formatted_examples)
-    prompt = [{"role": "user", "content": joined_examples}]
     return prompt
 
 def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, sim_matrix_filepath, debug_mode):
@@ -110,23 +107,34 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
         sim_matrix = np.load(f)
         labels = np.load(f)
 
+
+    GOOGLE_API_KEY="AIzaSyBDSeopo7yrCA-b18FRoWZCKDJW8VkE4vo"
+    genai.configure(api_key=GOOGLE_API_KEY)
+    safety_settings = [
+        {
+            "category": "HARM_CATEGORY_DANGEROUS",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE",
+        },
+    ]
     os.makedirs(result_dir, exist_ok=True)
 
-    import torch
-    torch_dtype = torch.float16
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch_dtype,
-        bnb_4bit_use_double_quant=True,
-    )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        quantization_config=bnb_config,
-        device_map="auto",
-    )
-        
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = genai.GenerativeModel(model_id, safety_settings=safety_settings)
 
     results = {
         "model": model_id,
@@ -148,7 +156,7 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
         filename = id + file_extension
         result_filepath = os.path.join(result_dir, filename)
 
-        if os.path.exists(result_filepath) and not debug_mode:
+        if os.path.exists(result_filepath) and not debug_mode :
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
@@ -163,23 +171,9 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
                 labels
             )
             
-
-            input_ids = tokenizer.apply_chat_template(
-                messages,
-                return_tensors="pt"
-            ).to(model.device)
-            
-            outputs = model.generate(
-                input_ids,
-                max_new_tokens=256,
-                do_sample=False
-            )
-
-            response = outputs[0][input_ids.shape[-1]:]
-            response_text = tokenizer.decode(response, skip_special_tokens=True)
-            response_text= response_text.replace('\n', '')
-            response_text= response_text.replace('**', '')
-            
+            response = model.generate_content(messages)
+            print(response)
+            response_text = response.text
             output_obj = {
                 "img": img,
                 "model": model_id,
@@ -228,7 +222,6 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
     print(f"Num. Invalids: {results['num_invalids']}")
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("CMTL RAG Baseline")
     parser.add_argument("--model_id", type=str, required=True)
@@ -261,6 +254,6 @@ if __name__ == "__main__":
         args.support_caption_dirs,
         args.support_feature_dirs,
         args.sim_matrix_filepath,
-        args.debug_mode
+        args.debug_mode,
     )
 

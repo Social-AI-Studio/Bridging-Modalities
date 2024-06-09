@@ -7,7 +7,13 @@ import pandas as pd
 import random
 import cv2
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, LlavaNextProcessor, LlavaNextForConditionalGeneration, AutoProcessor
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+)
+import torch
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
@@ -22,9 +28,9 @@ from tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from bm25_wrapper import get_top_k_similar as bm25_sampler
 from clip_wrapper import get_top_k_similar as clip_sampler
 # from sift_wrapper import get_top_k_similar as sift_sampler
+# should hatespeech prediction template be there?
 
-
-INTRODUCTION = """## Definition of Hate Speech:
+INTRODUCTION = """[INST] ## Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
 ## Instruction
@@ -43,9 +49,8 @@ Answer: {answer}
 QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
 Content: {content}
-Answer:
+Answer: [/INST]
 """
-
 
 
 def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
@@ -95,8 +100,7 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
     formatted_examples.append(question)
     
 
-    joined_examples = "".join(formatted_examples)
-    prompt = [{"role": "user", "content": joined_examples}]
+    prompt = "".join(formatted_examples)
     return prompt
 
 def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, sim_matrix_filepath, debug_mode):
@@ -112,21 +116,12 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
 
     os.makedirs(result_dir, exist_ok=True)
 
-    import torch
-    torch_dtype = torch.float16
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch_dtype,
-        bnb_4bit_use_double_quant=True,
-    )
-    model = AutoModelForCausalLM.from_pretrained(
+    model = LlavaNextForConditionalGeneration.from_pretrained(
         model_id,
-        quantization_config=bnb_config,
         device_map="auto",
+        cache_dir="/mnt/data1/aditi/hf/new_cache_dir/"
     )
-        
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/")
 
     results = {
         "model": model_id,
@@ -137,10 +132,10 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
         "y_true": [],
         "num_invalids": 0,
     }
-    
+
     if debug_mode:
         inference_annots = inference_annots[:5]
-
+    
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
         id = annot["id"]
@@ -148,7 +143,7 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
         filename = id + file_extension
         result_filepath = os.path.join(result_dir, filename)
 
-        if os.path.exists(result_filepath) and not debug_mode:
+        if os.path.exists(result_filepath) and not debug_mode :
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
@@ -163,11 +158,8 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
                 labels
             )
             
-
-            input_ids = tokenizer.apply_chat_template(
-                messages,
-                return_tensors="pt"
-            ).to(model.device)
+            
+            input_ids = tokenizer(text=messages, return_tensors="pt").to(model.device)["input_ids"]
             
             outputs = model.generate(
                 input_ids,
@@ -177,9 +169,9 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
 
             response = outputs[0][input_ids.shape[-1]:]
             response_text = tokenizer.decode(response, skip_special_tokens=True)
+
             response_text= response_text.replace('\n', '')
-            response_text= response_text.replace('**', '')
-            
+
             output_obj = {
                 "img": img,
                 "model": model_id,
@@ -226,7 +218,6 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
     print(f"F1 Score: {f1:04}")
     print(f"Acc Score: {acc:04}")
     print(f"Num. Invalids: {results['num_invalids']}")
-
 
 
 if __name__ == "__main__":

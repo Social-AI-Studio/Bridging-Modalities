@@ -1,10 +1,16 @@
 matching/surf.py
 */__pycache__
-.ipynb_checkpoints
-.virtual_documents
+*/.ipynb_checkpoints
 
 baselines/tfidf_wrapper.py
 baselines/utils.py
 matching/utils.py
 
 *.log
+llama
+results
+baselines/llama
+baselines/bm25_wrapper.py
+baselines/clip_wrapper.py
+baselines/tfidf_wrapper.py
+logs
