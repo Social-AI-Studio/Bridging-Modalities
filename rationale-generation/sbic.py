@@ -217,7 +217,7 @@ def main(annotations_file, output_dir, prompt_approach, process_label, num_split
 
         generated_ids = model.generate(
             model_inputs, 
-            max_new_tokens=340, 
+            max_new_tokens=1024, 
             do_sample=False, 
             num_beams=1
         )
