@@ -88,6 +88,8 @@ def generate_features(annotation_filepath, img_folder,  output_folder):
             data_list.append(record)
 
     for record in data_list:
+        if "mami" in annotation_filepath:
+            record["id"] = record["file_name"][:-4]
         id = record["id"]
         img_filepath = os.path.join(img_folder, f"{id}.jpg")
         img = Image.open(img_filepath) 
@@ -112,6 +114,7 @@ def main(
         output_filepath
     ):
     
+    sim_matrix = []
     if os.path.exists(output_filepath):
         print("Loading existing similarity matrix...")
         with open(output_filepath, 'rb') as f:
