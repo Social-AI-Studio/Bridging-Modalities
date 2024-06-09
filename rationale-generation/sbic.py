@@ -1,9 +1,11 @@
+# load models
+import os
+import ast
+
+import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# load models
 device = "cuda" # the device to load the model onto
-import os
-
 
 #util scripts
 import json
@@ -20,7 +22,7 @@ def remove_prompt_from_output(sentence):
         return sentence
 
 def create_zero_shot_prompt(text, label):
-    label = "Not Hateful." if label == "not_hate" else "Hateful."
+    label = "Not Hateful." if label == 0 else "Hateful."
         
     messages = [
         {"role": "user", 
@@ -39,7 +41,7 @@ def create_zero_shot_prompt(text, label):
     return messages
 
 def create_few_shot_prompt_4_shots(text, label):
-    label = "Not Hateful." if label == "not_hate" else "Hateful."
+    label = "Not Hateful." if label == 0 else "Hateful."
         
     messages = [
         {"role": "user", 
@@ -82,7 +84,7 @@ def create_few_shot_prompt_4_shots(text, label):
     return messages
 
 def create_few_shot_prompt_10_shots(text, label):
-    label = "Not Hateful." if label == "not_hate" else "Hateful."
+    label = "Not Hateful." if label == 0 else "Hateful."
         
     messages = [
         {"role": "user", 
@@ -155,7 +157,7 @@ def create_few_shot_prompt_10_shots(text, label):
     return messages
 
 import json
-def main(annotations_file, output_dir, prompt_approach, num_splits, split):
+def main(annotations_file, output_dir, prompt_approach, process_label, num_splits, split):
 
     model_id = "mistralai/Mistral-7B-Instruct-v0.3"
     model = AutoModelForCausalLM.from_pretrained(model_id)
@@ -172,21 +174,30 @@ def main(annotations_file, output_dir, prompt_approach, num_splits, split):
     os.makedirs(output_dir, exist_ok=True)
 
     # load all annotations
-    orig_data = []
-    with open(annotations_file, 'r') as file:
-        for line in file:
-            # Load each line as JSON
-            record = json.loads(line)
-            orig_data.append(record)
+    df = pd.read_csv(annotations_file)
+    df['targetCategory'] = df['targetCategory'].apply(ast.literal_eval)
+    df.rename({
+        "Unnamed: 0": "id"
+    }, axis=1, inplace=True)
 
     data = []
-    for record in orig_data:
+    for post_id, post, targetCategory in zip(df['id'], df['post'], df['targetCategory']):
         # Remove records with existing rationales
-        output_filepath = os.path.join(output_dir, f"{record['ID']}.json")
+        output_filepath = os.path.join(output_dir, f"{post_id}.json")
         if os.path.exists(output_filepath):
             continue
 
-        data.append(record)
+        #
+        if process_label == "hateful":
+            if len(targetCategory) == 0:
+                continue
+
+        data.append({
+            "ID": post_id,
+            "post": post,
+            "class": 1 if len(targetCategory) == 1 else 0,
+            "target_categories": targetCategory
+        })
 
     print("Number Records Remaining:", len(data))
     import math
@@ -198,8 +209,6 @@ def main(annotations_file, output_dir, prompt_approach, num_splits, split):
     print("Number Records Processing:", len(data))
 
     for index, record in enumerate(data):
-        print(record["ID"])
-        
         prompt = create_prompt(record["post"], record["class"])
         encodeds = tokenizer.apply_chat_template(prompt, return_tensors="pt").to(device)
 
@@ -216,7 +225,7 @@ def main(annotations_file, output_dir, prompt_approach, num_splits, split):
 
         output = decoded[0]
         cleaned_explanation = remove_prompt_from_output(output)
-
+    
         output_filepath = os.path.join(output_dir, f"{record['ID']}.json")
         obj = {
             "text": record['post'],
@@ -229,8 +238,8 @@ def main(annotations_file, output_dir, prompt_approach, num_splits, split):
         
     if num_splits == 1:
         records = []
-        for record in orig_data:
-            data_filepath = os.path.join(output_dir, f"{record['ID']}.json")
+        for record_id in df['id']:
+            data_filepath = os.path.join(output_dir, f"{record_id}.json")
             with open(data_filepath) as f:
                 obj = json.load(f)
                 records.append(obj)
@@ -248,17 +257,9 @@ parser = argparse.ArgumentParser("temporary for file splitting")
 parser.add_argument("--annotation_filepath", type=str)
 parser.add_argument("--output_dir", type=str)
 parser.add_argument("--prompt_approach", type=str, choices=["zero_shot", "few_shot_10_shots"])
+parser.add_argument("--process_label", type=str, choices=["all", "hateful"])
 parser.add_argument("--num_splits", type=int, required=True)
 parser.add_argument("--split", type=int, required=True)
 args = parser.parse_args()
 
-main(args.annotation_filepath, args.output_dir, args.prompt_approach, args.num_splits, args.split)
-
-# To Do (Temporary)
-# - Sort the records in the different broad target categories
-# - Pick some out for demonstration purposes
-# - Determine good demonstration purposes
-# - Run few-shot demonstrations
-
-# - API Key
-# - Model (Gemini 1.5 Pro & )
+main(args.annotation_filepath, args.output_dir, args.prompt_approach, args.process_label, args.num_splits, args.split)
