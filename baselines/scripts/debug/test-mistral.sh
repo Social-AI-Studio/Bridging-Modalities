@@ -4,7 +4,7 @@ MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explan
 
 MODEL=mistralai/Mistral-7B-Instruct-v0.3
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \

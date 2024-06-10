@@ -15,7 +15,7 @@ EXP=few_shot
 #fhm
 # random
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -30,7 +30,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
     --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_MEME_matching.npy >../../logs/$EXP/$MODEL/fhm-random.log &&
 
 #tf idf
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -46,7 +46,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
 
 # bm 25
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -62,7 +62,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
 
 # clip
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -79,7 +79,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
 # mistral-mami
 # random
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
@@ -96,7 +96,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
 
 # tf-idf
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
@@ -112,7 +112,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
 
 # bm-25
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
@@ -129,7 +129,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
 
 ## clip
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \

@@ -15,7 +15,7 @@ MODEL=llava-hf/llava-v1.6-mistral-7b-hf
 EXP=few_shot
 # FHM
 ## random
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -31,7 +31,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 
 #tfidf
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -47,7 +47,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 
 #bm25
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -63,7 +63,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 
 # clip
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
@@ -79,7 +79,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 # MAMI
 ## random
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
@@ -95,7 +95,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 
 #tfidf
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
@@ -111,7 +111,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 
 #bm25
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
@@ -127,7 +127,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
 
 
 # clip
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \

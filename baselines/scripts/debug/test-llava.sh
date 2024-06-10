@@ -13,7 +13,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-zs.py \
     --result_dir ../../../results/baselines/test-llava && 
 
 ## few shot
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
     --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \

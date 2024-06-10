@@ -11,12 +11,12 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 ## FHM
 # random
 
-# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs-no-rationales.py \
+# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
 #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
 #     --feature_dir "" \
-#     --result_dir ../../../results/baselines/llama2-fs-no-rationales/fhm_finegrained/random \
+#     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/random \
 #     --use_demonstrations \
 #     --demonstration_selection "random" \
 #     --demonstration_distribution "top-k" \
@@ -26,12 +26,12 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 #     --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_MEME_matching.npy > logs/llama2-fhm-random.log &&
 
 # #tf idf
-# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs-no-rationales.py \
+# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
 #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
 #     --feature_dir "" \
-#     --result_dir ../../../results/baselines/llama2-fs-no-rationales/fhm_finegrained/tfidf \
+#     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/tfidf \
 #     --use_demonstrations \
 #     --demonstration_selection "tf-idf" \
 #     --demonstration_distribution "top-k" \
@@ -42,12 +42,12 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 
 # # bm 25
 
-# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs-no-rationales.py \
+# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
 #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
 #     --feature_dir "" \
-#     --result_dir ../../../results/baselines/llama2-fs-no-rationales/fhm_finegrained/bm25 \
+#     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/bm25 \
 #     --use_demonstrations \
 #     --demonstration_selection "bm-25" \
 #     --demonstration_distribution "top-k" \
@@ -58,12 +58,12 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 
 # # clip
 
-# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs-no-rationales.py \
+# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
 #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
 #     --feature_dir "" \
-#     --result_dir ../../../results/baselines/llama2-fs-no-rationales/fhm_finegrained/clip \
+#     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/clip \
 #     --use_demonstrations \
 #     --demonstration_selection "clip" \
 #     --demonstration_distribution "top-k" \

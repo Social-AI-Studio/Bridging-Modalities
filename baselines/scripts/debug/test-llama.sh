@@ -4,7 +4,7 @@ MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explan
 LLAMA2=meta-llama/Llama-2-7b-hf
 LLAMA3=meta-llama/Meta-Llama-3-8B
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs-no-rationales.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
     --model_id meta-llama/Llama-2-7b-chat-hf \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
