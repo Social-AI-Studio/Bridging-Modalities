@@ -36,6 +36,9 @@ Evaluate the content using the definition of hate speech to determine if it is c
 
 EXAMPLE_TEMPLATE = """### Example {index}
 Content:{content}
+
+Rationale: {rationale}
+
 Answer: {answer}
 
 """
@@ -96,11 +99,11 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
 
     return prompt
 
-def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, sim_matrix_filepath, debug_mode):
+def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, support_rationale_dirs, sim_matrix_filepath, debug_mode):
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir)
     support_annots = []
-    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
-        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
+    for filepath, support_caption_dir, support_feature_dir, support_rationale_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_rationale_dirs):
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, support_rationale_dir)
         support_annots += annots
     
     with open(sim_matrix_filepath, 'rb') as f:
@@ -237,6 +240,7 @@ if __name__ == "__main__":
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
+    parser.add_argument("--support_rationale_dirs", nargs='+')
     parser.add_argument("--sim_matrix_filepath", type=str, required=True)
 
     args = parser.parse_args()
@@ -253,6 +257,7 @@ if __name__ == "__main__":
         args.support_filepaths,
         args.support_caption_dirs,
         args.support_feature_dirs,
+        args.support_rationale_dirs,
         args.sim_matrix_filepath,
         args.debug_mode,
     )

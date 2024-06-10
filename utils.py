@@ -28,6 +28,29 @@ def load_features(features_dir):
 
     return data_dict
 
+def load_rationales(folder_path):
+    json_dict = {}
+    
+    # List all files in the directory
+    for file_name in os.listdir(folder_path):
+        
+        if file_name.endswith('.json'):
+            file_path = os.path.join(folder_path, file_name)
+            
+            # Extract the filename without the ".json" extension
+            json_id = os.path.splitext(file_name)[0]
+            
+            # Open and read each JSON file
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+                explanation = data.get('rationale')
+                
+                # Add to dictionary if the explanation exists
+                if explanation is not None:
+                    json_dict[json_id] = explanation
+
+    return json_dict
+
 def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
     annotations = []
     with open(annotation_filepath) as f:
@@ -79,7 +102,7 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
 
     return processed_annotations
 
-def load_support_dataset(annotation_filepath, caption_dir, features_dir):
+def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationales_dir):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
@@ -89,11 +112,16 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
     if features_dir is not None and features_dir != "":
         features = load_features(features_dir)
 
+    rationales = None
+    if rationales_dir:
+        rationales = load_rationales(rationales_dir)
+
     processed_annotations = []
     for index, annot in enumerate(annotations):
         obj = {}
         
         if "latent_hatred" in annotation_filepath:
+            obj["id"] = annot["ID"]
             obj["img"] = "N/A"
             obj["text"] = annot['post']
             obj["label"] = annot['class_binarized']
@@ -103,7 +131,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["content_text"] = f"{obj['text']}"
             obj["context_text_caption"] = f"{obj['text']}"
 
-            obj["rationale"] = annot['mistral_instruct_statement']
+            obj["rationale"] = rationales[obj["id"]]
             
         if "mmhs" in annotation_filepath.lower():
             obj["id"] = annot["id"]
@@ -143,4 +171,5 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             
         processed_annotations.append(obj)
 
+    print(f"{len(processed_annotations)} records have been loaded")
     return processed_annotations
