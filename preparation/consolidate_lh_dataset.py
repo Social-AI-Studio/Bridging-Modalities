@@ -59,7 +59,10 @@ for annot in annotations:
             obj['target_categories_mapped'] = targets
         else:
             obj['target_categories'] = None
-            obj['target_categories_mapped'] = [-1]
+            if obj['class_binarized'] == 0:
+                obj['target_categories_mapped'] = [0]
+            else:
+                obj['target_categories_mapped'] = [-1]
 
         obj["mistral_instruct_statement"] = rationale
         objs.append(obj)
