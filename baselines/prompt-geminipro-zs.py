@@ -5,12 +5,12 @@ import json
 import argparse
 import pandas as pd
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, LlavaNextForConditionalGeneration
 from sklearn.metrics import f1_score, accuracy_score
 from utils import load_inference_dataset, load_support_dataset
+import google.generativeai as genai
 
-INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
-Definition of Hate Speech:
+INFERENCE_PROMPT_TEMPLATE = """## Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
 Instruction:
@@ -25,22 +25,33 @@ Answer:
 def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
     
+    GOOGLE_API_KEY="AIzaSyBDSeopo7yrCA-b18FRoWZCKDJW8VkE4vo"
+    genai.configure(api_key=GOOGLE_API_KEY)
+    safety_settings = [
+        {
+            "category": "HARM_CATEGORY_DANGEROUS",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE",
+        },
+        {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE",
+        },
+    ]
     os.makedirs(result_dir, exist_ok=True)
 
-    import torch
-    torch_dtype = torch.float16
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch_dtype,
-        bnb_4bit_use_double_quant=True,
-    )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        quantization_config=bnb_config,
-        device_map="auto",
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = genai.GenerativeModel(model_id, safety_settings=safety_settings)
 
     results = {
         "model": model_id,
@@ -66,25 +77,11 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
                 output_obj = json.load(f)
         else:
             content = INFERENCE_PROMPT_TEMPLATE.format(content=content)
-            messages = [
-                {"role": "user", "content": f"{content}"},
-            ]
 
-            input_ids = tokenizer.apply_chat_template(
-                messages,
-                return_tensors="pt"
-            ).to(model.device)
-
-            outputs = model.generate(
-                input_ids,
-                max_new_tokens=256,
-                do_sample=False,
-                num_beams=1
-            )
-
-            response = outputs[0][input_ids.shape[-1]:]
-            response_text = tokenizer.decode(response, skip_special_tokens=True)
-
+            response = model.generate_content(content)
+            print(response)
+            response_text = response.text
+            
             output_obj = {
                 "img": img,
                 "model": model_id,

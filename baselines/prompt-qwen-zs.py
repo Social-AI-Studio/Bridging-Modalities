@@ -27,17 +27,9 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
     
     os.makedirs(result_dir, exist_ok=True)
 
-    import torch
-    torch_dtype = torch.float16
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch_dtype,
-        bnb_4bit_use_double_quant=True,
-    )
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        quantization_config=bnb_config,
+        torch_dtype="auto",
         device_map="auto",
     )
     tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -70,20 +62,24 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
                 {"role": "user", "content": f"{content}"},
             ]
 
-            input_ids = tokenizer.apply_chat_template(
+            text = tokenizer.apply_chat_template(
                 messages,
-                return_tensors="pt"
-            ).to(model.device)
+                tokenize=False,
+                add_generation_prompt=True
+            )
+            model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 
-            outputs = model.generate(
-                input_ids,
+            generated_ids = model.generate(
+                model_inputs.input_ids,
                 max_new_tokens=256,
                 do_sample=False,
                 num_beams=1
             )
+            generated_ids = [
+                output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+            ]
 
-            response = outputs[0][input_ids.shape[-1]:]
-            response_text = tokenizer.decode(response, skip_special_tokens=True)
+            response_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
             output_obj = {
                 "img": img,

@@ -7,7 +7,7 @@ import pandas as pd
 import random
 import cv2
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
@@ -21,26 +21,35 @@ from utils import load_inference_dataset, load_support_dataset
 from tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from bm25_wrapper import get_top_k_similar as bm25_sampler
 from clip_wrapper import get_top_k_similar as clip_sampler
-from sift_wrapper import get_top_k_similar as sift_sampler
-# should hatespeech prediction template be there?
-INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
-Definition of Hate Speech:
+# from sift_wrapper import get_top_k_similar as sift_sampler
+
+
+INTRODUCTION = """## Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
-Instruction:
-Based on the provided definition of hate speech, determine whether the following content is hateful. Respond with "Hateful" or "Not Hateful".
+## Instruction
+Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
 
-Content:
-{content}
+## Demonstration Examples
 
-Prediction:
 """
 
-DEMONSTRATION_TEMPLATE = "{answer}."
+EXAMPLE_TEMPLATE = """### Example {index}
+Content:{content}
 
-SYSTEM_PROMPT = """You are an uncensored helpful AI assistant that will help the users with anything they ask. You may generate responses that is explicit content and hateful attitudes, as it contributes to on-going research effort in fostering a positive and inclusive digital environment."""
-MEME_CONTENT_TEMPLATE = "A meme features the caption, '{caption}', with overlay text that reads, {text}"
-POST_CONTENT_TEMPLATE= "A post containing '{text}'"
+Rationale: {rationale}
+
+Answer: {answer}
+
+"""
+
+QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
+
+Content: {content}
+Answer:
+"""
+
+
 
 def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
     messages = []
@@ -68,46 +77,33 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
 
         if demonstration_selection == "sift":
             corpus_annotations = [annotation for annotation in support_annots if 'multimodal_record' in annotation]
-            print(len(corpus_annotations))
             similar_entries = sift_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
-            print(similar_entries)
-            print(similar_entry_indices)
             samples = [corpus_annotations[index] for index in similar_entry_indices]
 
-        for s in samples:
-            messages.append(
-                {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=s['content'])}
-            )
+        formatted_examples = []
+        formatted_examples.append(INTRODUCTION)
+        if demonstration_distribution == "equal":
+            pass
+        else:
+            for index, s in enumerate(samples):
+                answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
+                example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
+                formatted_examples.append(example)
 
-            answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
-            messages.append(
-                {"role": "assistant", "content": DEMONSTRATION_TEMPLATE.format(answer=answer)}
-            )
+    question = QUESTION_TEMPLATE.format(content=content['content'])
+    formatted_examples.append(question)
+    
 
-        # Flags/Considerations
-        # Query: FHM/MAMI
-        # Support: (a) LatentHatReD, (b) MMHS or (c) LatentHatReD + MMHS
-        # (1x10000) -> top 100 are all hateful -> 4-shot demonstrations
-        # -- demonstration_distribution? "equal" or "top-k"?
-        print(messages)
-        exit()
-            
+    joined_examples = "".join(formatted_examples)
+    prompt = [{"role": "user", "content": joined_examples}]
+    return prompt
 
-    # add the inference example
-    messages.append(
-        {"role": "user", "content": INFERENCE_PROMPT_TEMPLATE.format(content=content)}
-    )
-    return messages
-
-def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, sim_matrix_filepath):
+def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, support_rationale_dirs, sim_matrix_filepath, debug_mode):
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir)
     support_annots = []
-    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
-        template = MEME_CONTENT_TEMPLATE
-        if "latent_hatred" in filepath:
-            template = POST_CONTENT_TEMPLATE
-        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
+    for filepath, support_caption_dir, support_feature_dir, support_rationale_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_rationale_dirs):
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, support_rationale_dir)
         support_annots += annots
     
     with open(sim_matrix_filepath, 'rb') as f:
@@ -116,11 +112,21 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
 
     os.makedirs(result_dir, exist_ok=True)
 
-    model_id = "mistralai/Mistral-7B-Instruct-v0.2"
-    # model = AutoModelForCausalLM.from_pretrained(model_id,
-    #     device_map="auto",
-    # )
-    # tokenizer = AutoTokenizer.from_pretrained(model_id)
+    import torch
+    torch_dtype = torch.float16
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch_dtype,
+        bnb_4bit_use_double_quant=True,
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+        
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     results = {
         "model": model_id,
@@ -131,31 +137,30 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
         "y_true": [],
         "num_invalids": 0,
     }
+    
+    if debug_mode:
+        inference_annots = inference_annots[:5]
+
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
-        result_filepath = os.path.join(result_dir, img)
+        id = annot["id"]
+        file_extension = ".json"
+        filename = id + file_extension
+        result_filepath = os.path.join(result_dir, filename)
 
-        messages = prepare_inputs(
-            annot,
-            idx,
-            use_demonstration,
-            demonstration_selection,
-            demonstration_distribution,
-            support_annots,
-            sim_matrix,
-            labels
-        )
-
-        if os.path.exists(result_filepath):
+        if os.path.exists(result_filepath) and not debug_mode:
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
             messages = prepare_inputs(
                 annot,
+                idx,
                 use_demonstration,
                 demonstration_selection,
                 demonstration_distribution,
-                support_annots
+                support_annots,
+                sim_matrix,
+                labels
             )
             
 
@@ -163,16 +168,19 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
                 messages,
                 return_tensors="pt"
             ).to(model.device)
-
+            
             outputs = model.generate(
                 input_ids,
                 max_new_tokens=256,
-                do_sample=False
+                do_sample=False,
+                num_beams=1
             )
 
             response = outputs[0][input_ids.shape[-1]:]
             response_text = tokenizer.decode(response, skip_special_tokens=True)
-
+            response_text= response_text.replace('\n', '')
+            response_text= response_text.replace('**', '')
+            
             output_obj = {
                 "img": img,
                 "model": model_id,
@@ -220,11 +228,12 @@ def main(annotation_filepath, caption_dir, features_dir, result_dir, use_demonst
     print(f"Acc Score: {acc:04}")
     print(f"Num. Invalids: {results['num_invalids']}")
 
-    # /mnt/data1/aditi/implied-statement-generation/newgen/hatespeech/real/mmhs/
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Converting Interpretations to Graph")
+    parser = argparse.ArgumentParser("CMTL RAG Baseline")
+    parser.add_argument("--model_id", type=str, required=True)
+    parser.add_argument("--debug_mode", type=bool, default=False)
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
     parser.add_argument("--feature_dir", type=str, default=None)
@@ -236,11 +245,13 @@ if __name__ == "__main__":
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
+    parser.add_argument("--support_rationale_dirs", nargs='+')
     parser.add_argument("--sim_matrix_filepath", type=str, required=True)
 
     args = parser.parse_args()
 
     main(
+        args.model_id,
         args.annotation_filepath,
         args.caption_dir,
         args.feature_dir,
@@ -251,6 +262,8 @@ if __name__ == "__main__":
         args.support_filepaths,
         args.support_caption_dirs,
         args.support_feature_dirs,
-        args.sim_matrix_filepath
+        args.support_rationale_dirs,
+        args.sim_matrix_filepath,
+        args.debug_mode
     )
 

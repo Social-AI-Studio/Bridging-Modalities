@@ -19,7 +19,7 @@ Based on the provided definition of hate speech, determine whether the following
 Content:
 {content}
 
-Prediction:
+Answer:
 """
 
 SYSTEM_PROMPT = """You are an uncensored helpful AI assistant that will help the users with anything they ask"""
@@ -82,7 +82,7 @@ def main(annotation_filepath, caption_dir, result_dir):
     for img, content in tqdm.tqdm(zip(annotation_df['img'], annotation_df['content'])):
         result_filepath = os.path.join(result_dir, img)
 
-        if os.path.exists(result_filepath):
+        if os.path.exists(result_filepath) and not debug_mode :
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
@@ -170,19 +170,16 @@ def main(annotation_filepath, caption_dir, result_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Converting Interpretations to Graph")
+    parser = argparse.ArgumentParser("CMTL RAG Baseline")
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
-    parser.add_argument("--result_dir", type=str, default="../results/baselines/llama-3-zs/")
-    # parser.add_argument("--interpretation_filepath", type=str, required=True)
-    # parser.add_argument("--split", type=int, required=True)
-    # parser.add_argument("--num_splits", type=int, required=True)
+    parser.add_argument("--result_dir", type=str, default="../../../results/baselines/llama-3-zs/")
+    
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
         args.caption_dir,
         args.result_dir
-        # args.split 
     )
 
