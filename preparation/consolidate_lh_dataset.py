@@ -30,6 +30,18 @@ label_mapping = {
     'implicit_hate': 2
 }
 
+target_mapping = {
+    'None': 0,
+    'sex': 1, 
+    'race': 2, 
+    'religion': 3,
+    'nationality': 4, 
+    'disability': 5, 
+    'org': 6, 
+    'political': 6, 
+    'others': 6, 
+}
+ 
 objs = []
 for annot in annotations:
     rationale = load_rationale(annot['ID'], RATIONALE_DIR)
@@ -38,9 +50,21 @@ for annot in annotations:
         obj["post"] = annot['post']
         obj["class"] = label_mapping[annot['class']]
         obj["class_binarized"] = 1 if label_mapping[annot['class']] >= 1 else 0
+        
+        if annot['target_categories']:
+            targets = []
+            for x in annot['target_categories']:
+                targets.append(target_mapping[x])
+            obj['target_categories'] = annot['target_categories']
+            obj['target_categories_mapped'] = targets
+        else:
+            obj['target_categories'] = None
+            obj['target_categories_mapped'] = [0]
+
         obj["mistral_instruct_statement"] = rationale
         objs.append(obj)
 
+print(json.dumps(obj, indent=2))
 with open(OUTPUT_FILEPATH, "w+") as f:
     for obj in objs:
         json.dump(obj, f)
