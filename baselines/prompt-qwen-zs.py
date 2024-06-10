@@ -121,7 +121,7 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
         results["y_pred"].append(pred)
 
     # Compute Accuracy and F1 Scores
-    f1 = f1_score(results["y_true"], results["y_pred"], average='micro')
+    f1 = f1_score(results["y_true"], results["y_pred"], average='macro')
     acc = accuracy_score(results["y_true"], results["y_pred"])
 
     print(f"F1 Score: {f1:04}")

@@ -112,9 +112,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationa
     if features_dir is not None and features_dir != "":
         features = load_features(features_dir)
 
-    rationales = None
-    if rationales_dir:
-        rationales = load_rationales(rationales_dir)
+    rationales = load_rationales(rationales_dir)
 
     processed_annotations = []
     for index, annot in enumerate(annotations):
@@ -179,7 +177,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationa
             obj["context_text"] = f"{obj['text']}"
             obj["context_text_caption"] = f"{obj['text']} {obj['caption']}"
 
-            obj["rationale"] = annot['rationale']
+            obj["rationale"] = rationales[obj["id"]]
             
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
