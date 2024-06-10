@@ -1,5 +1,4 @@
 LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
-MMHS=/mnt/data1/datasets/temp/MMHS150K/explanations/train-explanations.jsonl
 MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explanation.jsonl
 
 # Construct TF-IDF Similarity Matrix (LH, Text)
@@ -19,4 +18,4 @@ python3 tfidf_wrapper.py \
 
 # Construct TF-IDF Similarity Matrix (LH + Image, Text + Caption)
 
-# Construct TF-IDF Similarity Matrix (LH + Image, Text + Rationale) 
+# Construct TF-IDF Similarity Matrix (LH + Image, Rationale) 

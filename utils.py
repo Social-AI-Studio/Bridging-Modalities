@@ -102,7 +102,7 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
 
     return processed_annotations
 
-def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationales_dir):
+def load_support_dataset(annotation_filepath, caption_dir, features_dir):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
@@ -112,14 +112,11 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationa
     if features_dir is not None and features_dir != "":
         features = load_features(features_dir)
 
-    rationales = load_rationales(rationales_dir)
-
     processed_annotations = []
     for index, annot in enumerate(annotations):
         obj = {}
         
         if "latent_hatred" in annotation_filepath:
-            obj["id"] = annot["ID"]
             obj["img"] = "N/A"
             obj["text"] = annot['post']
             obj["label"] = annot['class_binarized']
@@ -129,7 +126,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationa
             obj["content_text"] = f"{obj['text']}"
             obj["context_text_caption"] = f"{obj['text']}"
 
-            obj["rationale"] = rationales[obj["id"]]
+            obj["rationale"] = annot["mistral_instruct_statement"]
             
         if "mmhs" in annotation_filepath.lower():
             obj["id"] = annot["id"]
@@ -177,7 +174,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, rationa
             obj["context_text"] = f"{obj['text']}"
             obj["context_text_caption"] = f"{obj['text']} {obj['caption']}"
 
-            obj["rationale"] = rationales[obj["id"]]
+            obj["rationale"] = annot["mistral_instruct_statement"]
             
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]

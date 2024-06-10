@@ -37,7 +37,7 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
     )
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        quantization_config=bnb_config,
+        # quantization_config=bnb_config,
         device_map="auto",
     )
     tokenizer = AutoTokenizer.from_pretrained(model_id)
