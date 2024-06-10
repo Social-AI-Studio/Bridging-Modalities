@@ -13,4 +13,5 @@ baselines/llama
 baselines/bm25_wrapper.py
 baselines/clip_wrapper.py
 baselines/tfidf_wrapper.py
+baselines/scripts/test.sh
 logs

@@ -63,7 +63,8 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
             outputs = model.generate(
                 input_ids,
                 max_new_tokens=256,
-                do_sample=False
+                do_sample=False,
+                num_beams=1
             )
 
             response = outputs[0][input_ids.shape[-1]:]
