@@ -2,6 +2,7 @@ import os
 import json
 
 ANNOTATIONS_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment.jsonl"
+RATIONALE_DIR = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/rationales/mistral-v0.3-7b/few_shot_10_shots_cleaned"
 OUTPUT_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment_rationales_{k}.jsonl"
 
 def load_rationale(content_id, rationales_dir):
@@ -21,8 +22,20 @@ def load_annotations(annotation_filepath):
 
 annotations = load_annotations(ANNOTATIONS_FILEPATH)
 
+
+target_mapping = {
+    'pc_empty': 0, 
+    'sex': 1, 
+    'race': 2, 
+    'religion': 3,
+    'nationality': 4, 
+    'disability': 5, 
+}
+
+targets = []
 for annot in annotations:
-    annot["mistral_instruct_statement"] = "MISSING"
+    annot["mistral_instruct_statement"] = load_rationale(f"{annot['id']:05}", RATIONALE_DIR)
+    annot["gold_pc_mapped"] = [target_mapping[x] for x in annot['gold_pc']]
 
 pc_records = {
     'nationality': [], 
