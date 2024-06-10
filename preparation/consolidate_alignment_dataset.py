@@ -1,0 +1,50 @@
+import os
+import json
+
+ANNOTATIONS_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment.jsonl"
+OUTPUT_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment_rationales_{k}.jsonl"
+
+def load_rationale(content_id, rationales_dir):
+    caption_filepath = os.path.join(rationales_dir, f"{content_id}.json")
+    with open(caption_filepath) as f:
+        d = json.load(f)
+
+    return d['rationale']
+
+def load_annotations(annotation_filepath):
+    annotations = []
+    with open(annotation_filepath) as f:
+        for line in f:
+            annotations.append(json.loads(line))
+
+    return annotations
+
+annotations = load_annotations(ANNOTATIONS_FILEPATH)
+
+for annot in annotations:
+    annot["mistral_instruct_statement"] = "MISSING"
+
+pc_records = {
+    'nationality': [], 
+    'pc_empty': [], 
+    'disability': [], 
+    'religion': [], 
+    'race': [], 
+    'sex': []
+}
+for annot in annotations:
+    pc_records[annot['gold_pc'][0]].append(annot)
+
+import random 
+for k in [4,8,16,32]:
+    records = []
+    for v in pc_records.values():
+        records += random.sample(v, k)
+
+    print(f"Num. Records (k={k}):", len(records))
+
+    output_filepath = OUTPUT_FILEPATH.format(k=k)
+    with open(output_filepath, "w+") as f:
+        for obj in records:
+            json.dump(obj, f)
+            f.write("\n")

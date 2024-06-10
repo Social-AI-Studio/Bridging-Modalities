@@ -123,6 +123,23 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["multimodal_record"] = True
             
+        if "alignment" in annotation_filepath.lower():
+            obj["id"] = f"{annot['id']:05}"
+            obj["img"] = os.path.basename(annot['img'])
+            obj["text"] = annot['text']
+            obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
+
+            obj["caption"] = load_caption(obj['img'], caption_dir)
+            obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_text"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
+
+            if features_dir is not None and features_dir != "":
+                obj["features"] = features[obj["id"]]
+
+            obj["rationale"] = annot['mistral_instruct_statement']
+            obj["multimodal_record"] = True
+            
         if "misogynistic_meme" in annotation_filepath.lower():
             obj["id"] = annot["id"]
             obj["img"] = annot['img']

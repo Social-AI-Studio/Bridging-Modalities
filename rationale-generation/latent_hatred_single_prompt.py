@@ -233,6 +233,7 @@ def main(annotations_file, output_dir, prompt_approach, num_splits, split):
             data_filepath = os.path.join(output_dir, f"{record['ID']}.json")
             with open(data_filepath) as f:
                 obj = json.load(f)
+                obj['ID'] = record['ID']
                 records.append(obj)
 
         data_filepath = os.path.join(output_dir, f"compiled.jsonl")
