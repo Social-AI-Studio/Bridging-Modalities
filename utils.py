@@ -5,6 +5,15 @@ import pickle
 MEME_CONTENT_TEMPLATE = "A meme with the caption, '{caption}', and overlay text that reads, {text}"
 POST_CONTENT_TEMPLATE= "A post containing '{text}'"
 
+fhm_target_mapping = {
+    'pc_empty': 0, 
+    'sex': 1, 
+    'race': 2, 
+    'religion': 3,
+    'nationality': 4, 
+    'disability': 5, 
+}
+
 def load_caption(img_filename, caption_dir):
     filename, _ = os.path.splitext(img_filename)
     caption_filepath = os.path.join(caption_dir, f"{filename}.json")
@@ -28,28 +37,6 @@ def load_features(features_dir):
 
     return data_dict
 
-def load_rationales(folder_path):
-    json_dict = {}
-    
-    # List all files in the directory
-    for file_name in os.listdir(folder_path):
-        
-        if file_name.endswith('.json'):
-            file_path = os.path.join(folder_path, file_name)
-            
-            # Extract the filename without the ".json" extension
-            json_id = os.path.splitext(file_name)[0]
-            
-            # Open and read each JSON file
-            with open(file_path, 'r') as file:
-                data = json.load(file)
-                explanation = data.get('rationale')
-                
-                # Add to dictionary if the explanation exists
-                if explanation is not None:
-                    json_dict[json_id] = explanation
-
-    return json_dict
 
 def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
     annotations = []
@@ -81,6 +68,8 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
                 obj["features"] = features[obj["id"]]
 
             obj["multimodal_record"] = True
+
+            obj["target_categories_mapped"] = [fhm_target_mapping[x] for x in annot["gold_pc"]]
 
         if "mami" in annotation_filepath:
             obj["id"] = annot["file_name"][:-4]
