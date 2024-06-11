@@ -43,6 +43,7 @@ target_mapping = {
 }
  
 objs = []
+num_negatives = 0
 for annot in annotations:
     rationale = load_rationale(annot['ID'], RATIONALE_DIR)
     if rationale:
@@ -63,10 +64,12 @@ for annot in annotations:
                 obj['target_categories_mapped'] = [0]
             else:
                 obj['target_categories_mapped'] = [-1]
+                num_negatives += 1
 
         obj["mistral_instruct_statement"] = rationale
         objs.append(obj)
 
+print(num_negatives)
 print(json.dumps(obj, indent=2))
 with open(OUTPUT_FILEPATH, "w+") as f:
     for obj in objs:
