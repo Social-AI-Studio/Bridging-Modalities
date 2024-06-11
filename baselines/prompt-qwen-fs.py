@@ -37,21 +37,22 @@ Evaluate the content using the definition of hate speech to determine if it is c
 EXAMPLE_TEMPLATE = """### Example {index}
 Content:{content}
 
-Rationale: {rationale}
-
 Answer: {answer}
+
+Rationale: {rationale}
 
 """
 
 QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
 Content: {content}
+
 Answer: 
 """
 
 
 
-def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=4):
+def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=16):
     messages = []
 
     if use_demonstrations:
@@ -109,6 +110,7 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
     with open(sim_matrix_filepath, 'rb') as f:
         sim_matrix = np.load(f)
         labels = np.load(f)
+        # target_classes=np.load(f, allow_pickle=True)
 
     os.makedirs(result_dir, exist_ok=True)
 
