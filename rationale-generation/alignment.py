@@ -234,6 +234,11 @@ def load_entities(entity_dir, filename):
 def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, prompt_approach, num_splits, split):
     # load all annotations
     df = load_annotations(annotations_file)
+    
+    output_dir = os.path.join(output_dir, prompt_approach)
+    os.makedirs(output_dir, exist_ok=True)
+
+    df = df[~df['id'].apply(lambda x: os.path.exists(os.path.join(output_dir, f"{x:05}.json")))]
 
     import math
     records_per_split = math.ceil(len(df) / num_splits)
@@ -241,17 +246,14 @@ def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, 
     end = (split + 1) * records_per_split
     df = df.iloc[start:end]
 
-    os.makedirs(output_dir, exist_ok=True)
-    print(df.columns)
-
     device = "cuda" # the device to load the model onto
-    model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
+    model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3")
+    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.3")
 
     if prompt_approach == "few_shot_4_shots":
         create_prompt = create_few_shot_prompt_4_shots
     elif prompt_approach == "few_shot_10_shots":
-        create_prompt = create_few_shot_prompt_4_shots
+        create_prompt = create_few_shot_prompt_10_shots
     else:
         raise NotImplementedError(f"prompt_approach `{prompt_approach}` not implemented")
 
