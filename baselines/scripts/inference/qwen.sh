@@ -1,5 +1,4 @@
 LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
-MMHS=/mnt/data1/datasets/temp/MMHS150K/explanations/train-explanations.jsonl
 MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explanation.jsonl
 
 FHM_TFIDF=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/text/fhm_lh_tfidf_matching.npy
@@ -9,7 +8,7 @@ MAMI_TFIDF=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/text/mami_lh_tfidf_ma
 MAMI_BM25=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/text/mami_lh_bm25_matching.npy
 
 MODEL=Qwen/Qwen2-7B-Instruct
-EXP=sixteen_shot
+EXP=four_shot
 #fhm
 # random
 
@@ -25,7 +24,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED \
     --support_caption_dirs "" \
     --support_feature_dirs ""  \
-    --sim_matrix_filepath $FHM_BM25 >../../logs/$EXP/$MODEL/fhm-random.log &&
+    --sim_matrix_filepath $FHM_BM25 > ../../logs/$EXP/$MODEL/fhm-random.log &&
 
 #tf idf
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
@@ -40,7 +39,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED  \
     --support_caption_dirs "" \
     --support_feature_dirs ""  \
-    --sim_matrix_filepath $FHM_TFIDF >../../logs/$EXP/$MODEL/fhm-tfidf.log &&
+    --sim_matrix_filepath $FHM_TFIDF > ../../logs/$EXP/$MODEL/fhm-tfidf.log &&
 
 # bm 25
 
@@ -108,17 +107,3 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_caption_dirs "" \
     --support_feature_dirs "" \
     --sim_matrix_filepath $MAMI_BM25 >../../logs/$EXP/$MODEL/mami-bm25.log
-
-# # fhm
-# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-zs.py \
-#     --model_id $MODEL \
-#     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
-#     --result_dir ../../../results/baselines/$EXP/$MODEL/fhm_finegrained  > ../../logs/$EXP/$MODEL/fhm.log && 
-    
-# # mami
-# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-zs.py \
-#     --model_id $MODEL \
-#     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-#     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
-#     --result_dir ../../../results/baselines/$EXP/$MODEL/mami/ > ../../logs/$EXP/$MODEL/mami.log 

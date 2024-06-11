@@ -11,8 +11,7 @@
 #     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption// \
 #     --result_dir ../../../results/baselines/llama-3-zs/mami
 
-LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/truncated/explanations/train-explanations.jsonl
-MMHS=/mnt/data1/datasets/temp/MMHS150K/explanations/train-explanations.jsonl
+LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
 
 python3 ../../prompt-mistral-fs.py \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
