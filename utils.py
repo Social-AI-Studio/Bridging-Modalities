@@ -127,6 +127,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["context_text_caption"] = f"{obj['text']}"
 
             obj["rationale"] = annot["mistral_instruct_statement"]
+            obj["target_categories_mapped"] = annot["target_categories_mapped"]
             
         if "mmhs" in annotation_filepath.lower():
             obj["id"] = annot["id"]

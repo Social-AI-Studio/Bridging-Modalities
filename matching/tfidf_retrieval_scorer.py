@@ -2,21 +2,9 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
-
-def compute_corpus_matrix(corpus):
-    # Create a TfidfVectorizer object
-    vectorizer = TfidfVectorizer()
-    
-    # Generate the TF-IDF vectors for the two texts
-    tfidf_matrix = vectorizer.fit_transform(corpus)
-    
-    return tfidf_matrix, vectorizer
-
-def get_top_k_similar(sim_vector, labels, k, selection):
+def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
     if selection == "equal":
         indices = sim_vector.argsort()[::-1]
         
@@ -40,94 +28,66 @@ def get_top_k_similar(sim_vector, labels, k, selection):
     else:
         
         indices = sim_vector.argsort()[-k:][::-1]
-        print(indices)
-        print(len(labels))
         records = []
         for ind in indices:
-            print(ind)
             label = labels[ind]
             prob = sim_vector[ind]
+            target_classes=support_target_classes[ind]
 
-            records.append((ind, prob, label))
+            records.append((ind, prob, label, target_classes))
 
         return records
+
+def count_relevant(query_list, doc_lists):
+    result = 0
+    for doc_list in doc_lists:
+        intersection = set(query_list) & set(doc_list)
+        if intersection:
+            result += 1
+    return result
 
 def main(
         annotation_filepath,
         caption_dir,
-        support_filepaths,
-        support_caption_dirs,
-        support_rationale_dirs
+        sim_matrix_path,
+        top_p
     ):
     
-    if os.path.exists(output_filepath):
-        print("Loading existing similarity matrix...")
-        with open(output_filepath, 'rb') as f:
+    print("Loading existing similarity matrix...")
+    with open(sim_matrix_path, 'rb') as f:
             sim_matrix = np.load(f)
             labels = np.load(f)
-    else:
-        # Load the inference annotations
-        inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
-        print("Num Inference Examples:", len(inference_annots))
+            target_classes=np.load(f, allow_pickle=True)
+    
+    # Load the inference annotations
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
+
+    total_intersections = 0
+    for index, query in enumerate(inference_annots):
+
+        query_classes = query['target_categories_mapped']
+        sim_vector = sim_matrix[index]
+        similar_entries = get_top_k_similar(sim_vector, labels, target_classes, top_p, selection="random")
+        retrieved_doc_classes = [entry[3] for entry in similar_entries]
         
-        # Load the support annotations
-        support_annots = []
-        for filepath, support_caption_dir in zip(support_filepaths, support_caption_dirs):
-            annots = load_support_dataset(filepath, support_caption_dir, None)
-            support_annots += annots
-        # corpus = df['mistral_instruct_statement'].tolist()
-        # classes = df['class'].tolist()
-        print("Num Support Examples:", len(support_annots))
+        intersections = count_relevant(query_classes, retrieved_doc_classes)
+        total_intersections += intersections
 
-        # Prepare corpus
-        corpus = [] 
-        labels = []
-        for idx, record in enumerate(support_annots):
-            corpus.append(record['content_for_retrieval'])
-            labels.append(record['label'])
-        
-        corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
-        print("Corpus Matrix:", corpus_matrix.shape)
+    precision_at_k = total_intersections / (len(inference_annots) * top_p)
+    print(f"Precision at {top_p}: {precision_at_k}")
 
-        # Prepare inference queries
-        queries = []
-        for idx, record in enumerate(inference_annots):
-            queries.append(record['content_for_retrieval'])
-
-        query_vectors = vectorizer.transform(queries)
-        print("Query Vectors:", query_vectors.shape)
-
-        # Compute cosine similarity
-        sim_matrix = cosine_similarity(query_vectors, corpus_matrix)
-        print("Similarity Matrices:", sim_matrix.shape)
-        
-        with open(output_filepath, 'wb') as f:
-            np.save(f, sim_matrix)
-            np.save(f, np.array(labels))
-
-    # Example: Getting top 4 similar records for first record
-    sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
-    print(similar_entries)
-
-    sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="equal")
-    print(similar_entries)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
     parser.add_argument("--caption_dir", type=str)
-
-    parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")
-    parser.add_argument("--support_caption_dirs", nargs='+')
-    parser.add_argument("--support_rationale_dirs", nargs="+")
+    parser.add_argument("--sim_matrix_filepath", type=str)
+    parser.add_argument("--top_p", type=int)
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
         args.caption_dir,
-        args.support_filepaths,
-        args.support_caption_dirs,
-        args.support_rationale_dirs
+        args.sim_matrix_filepath,
+        args.top_p
     )

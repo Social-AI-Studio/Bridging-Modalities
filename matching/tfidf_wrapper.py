@@ -16,7 +16,7 @@ def compute_corpus_matrix(corpus):
     
     return tfidf_matrix, vectorizer
 
-def get_top_k_similar(sim_vector, labels, k, selection):
+def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
     if selection == "equal":
         indices = sim_vector.argsort()[::-1]
         
@@ -40,15 +40,13 @@ def get_top_k_similar(sim_vector, labels, k, selection):
     else:
         
         indices = sim_vector.argsort()[-k:][::-1]
-        print(indices)
-        print(len(labels))
         records = []
         for ind in indices:
-            print(ind)
             label = labels[ind]
             prob = sim_vector[ind]
+            target_classes=support_target_classes[ind]
 
-            records.append((ind, prob, label))
+            records.append((ind, prob, label, target_classes))
 
         return records
 
@@ -71,6 +69,7 @@ def main(
         with open(output_filepath, 'rb') as f:
             sim_matrix = np.load(f)
             labels = np.load(f)
+            target_classes=np.load(f)
     else:
         # Load the inference annotations
         inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
@@ -87,9 +86,11 @@ def main(
         # Prepare corpus
         corpus = [] 
         labels = []
+        target_classes = []
         for idx, record in enumerate(support_annots):
             corpus.append(record[support_content])
             labels.append(record['label'])
+            target_classes.append(record['target_categories_mapped'])
         
         corpus_matrix, vectorizer = compute_corpus_matrix(corpus)
         print("Corpus Matrix:", corpus_matrix.shape)
@@ -109,14 +110,15 @@ def main(
         with open(output_filepath, 'wb') as f:
             np.save(f, sim_matrix)
             np.save(f, np.array(labels))
+            np.save(f, np.array(target_classes, dtype=object))
 
     # Example: Getting top 4 similar records for first record
     sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, 6, selection="random")
+    similar_entries = get_top_k_similar(sim_vector, labels, target_classes, 6, selection="random")
     print(similar_entries)
 
     sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, 6, selection="equal")
+    similar_entries = get_top_k_similar(sim_vector, labels, target_classes, 6, selection="equal")
     print(similar_entries)
 
 if __name__ == "__main__":
