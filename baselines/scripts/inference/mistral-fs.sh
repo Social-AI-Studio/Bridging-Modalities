@@ -18,7 +18,7 @@ EXP=few_shot
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/fhm_finegrained/random \
     --use_demonstrations \
@@ -33,7 +33,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/fhm_finegrained/tfidf \
     --use_demonstrations \
@@ -49,7 +49,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/fhm_finegrained/bm25 \
     --use_demonstrations \
@@ -65,7 +65,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/fhm_finegrained/clip \
     --use_demonstrations \
@@ -82,7 +82,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
+    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/mami/random \
     --use_demonstrations \
@@ -99,7 +99,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
+    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/mami/tfidf \
     --use_demonstrations \
@@ -115,7 +115,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
+    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/mami/bm25 \
     --use_demonstrations \
@@ -132,7 +132,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
+    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \
     --result_dir ../../../results/baselines/$EXP/$MODEL/mami/clip \
     --use_demonstrations \

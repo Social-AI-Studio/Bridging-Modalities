@@ -14,7 +14,7 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 # CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
 #     --feature_dir "" \
 #     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/random \
 #     --use_demonstrations \
@@ -29,7 +29,7 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 # CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
 #     --feature_dir "" \
 #     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/tfidf \
 #     --use_demonstrations \
@@ -45,7 +45,7 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 # CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
 #     --feature_dir "" \
 #     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/bm25 \
 #     --use_demonstrations \
@@ -61,7 +61,7 @@ FHM_CLIP=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_clip_Misogynistic_M
 # CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llama2-fs.py \
 #     --model_id $LLAMA2 \
 #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/blip2-opt-6.7b-coco/ \
+#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
 #     --feature_dir "" \
 #     --result_dir ../../../results/baselines/llama2-fs/fhm_finegrained/clip \
 #     --use_demonstrations \
