@@ -14,7 +14,6 @@ EXP=four_shot
 ## random
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
@@ -32,7 +31,6 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
 #tfidf
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
@@ -50,7 +48,6 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
 #bm25
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --feature_dir "" \
@@ -69,7 +66,6 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
 ## random
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \
@@ -87,7 +83,6 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
 #tfidf
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \
@@ -105,7 +100,6 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
 #bm25
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir "" \

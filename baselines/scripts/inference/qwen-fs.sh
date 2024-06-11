@@ -24,7 +24,8 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED \
     --support_caption_dirs "" \
     --support_feature_dirs ""  \
-    --sim_matrix_filepath $FHM_BM25 > ../../logs/$EXP/$MODEL/fhm-random.log &&
+    --sim_matrix_filepath $FHM_BM25 \
+    --shots 4 > ../../logs/$EXP/$MODEL/fhm-random.log &&
 
 #tf idf
 CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
@@ -39,7 +40,8 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED  \
     --support_caption_dirs "" \
     --support_feature_dirs ""  \
-    --sim_matrix_filepath $FHM_TFIDF > ../../logs/$EXP/$MODEL/fhm-tfidf.log &&
+    --sim_matrix_filepath $FHM_TFIDF \
+    --shots 4 > ../../logs/$EXP/$MODEL/fhm-tfidf.log &&
 
 # bm 25
 
@@ -55,7 +57,8 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED \
     --support_caption_dirs "" \
     --support_feature_dirs "" \
-    --sim_matrix_filepath $FHM_BM25 >../../logs/$EXP/$MODEL/fhm-bm25.log &&
+    --sim_matrix_filepath $FHM_BM25 \
+    --shots 4 > ../../logs/$EXP/$MODEL/fhm-bm25.log &&
 
 
 # qwen-mami
@@ -73,7 +76,8 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED \
     --support_caption_dirs "" \
     --support_feature_dirs "" \
-    --sim_matrix_filepath $FHM_TFIDF >../../logs/$EXP/$MODEL/mami-random.log &&
+    --sim_matrix_filepath $FHM_TFIDF \
+    --shots 4 >../../logs/$EXP/$MODEL/mami-random.log &&
 
 
 # tf-idf
@@ -90,7 +94,8 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED \
     --support_caption_dirs "" \
     --support_feature_dirs "" \
-    --sim_matrix_filepath $MAMI_TFIDF >../../logs/$EXP/$MODEL/mami-tfidf.log &&
+    --sim_matrix_filepath $MAMI_TFIDF \
+    --shots 4 >../../logs/$EXP/$MODEL/mami-tfidf.log &&
 
 # bm-25
 
@@ -106,4 +111,6 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
     --support_filepaths $LATENT_HATRED \
     --support_caption_dirs "" \
     --support_feature_dirs "" \
-    --sim_matrix_filepath $MAMI_BM25 >../../logs/$EXP/$MODEL/mami-bm25.log
+    --sim_matrix_filepath $MAMI_BM25 \
+    --shots 4 >../../logs/$EXP/$MODEL/mami-bm25.log
+
