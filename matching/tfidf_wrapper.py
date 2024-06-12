@@ -112,9 +112,12 @@ def main(
             np.save(f, np.array(target_classes, dtype=object))
 
     # Example: Getting top 4 similar records for first record
+    print(inference_annots[0])
+
     sim_vector = sim_matrix[0]
     similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
     print(similar_entries)
+    print(support_annots[similar_entries[0][0]])
 
     sim_vector = sim_matrix[0]
     similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="equal")
@@ -123,7 +126,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
-    parser.add_argument("--annotation_content", type=str, required=True, choices=["content_text", "content_text_caption"])
+    parser.add_argument("--annotation_content", type=str, required=True, choices=["content_text", "content_text_caption", "rationale"])
     parser.add_argument("--caption_dir", type=str, default=None)
 
     parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")

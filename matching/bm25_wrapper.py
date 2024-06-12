@@ -1,27 +1,22 @@
+import os
+import tqdm
+
 import argparse
 import pandas as pd
 import numpy as np
 from rank_bm25 import BM25Okapi
-import os
 from utils import load_inference_dataset, load_support_dataset
 
-def bm25_similarity(query, corpus):
-    # Preprocessing: Tokenize the texts
-    def tokenize(text):
-        return text.lower().split()
-    corpus = [query] + corpus
-    # Tokenize the entire corpus
-    tokenized_corpus = [tokenize(doc) for doc in corpus]
-    
-    # Initialize BM25
-    bm25 = BM25Okapi(tokenized_corpus)
-    
+def tokenize(text):
+    return text.lower().split()
+
+def bm25_similarity(query, bm25):
     # Tokenize the query
     tokenized_query = tokenize(query)
     
     # Generate BM25 scores for the query against the corpus
     sim_scores = bm25.get_scores(tokenized_query)
-    return sim_scores[1:]
+    return sim_scores
 
 def get_top_k_similar(sim_vector, labels, k, selection):
     if selection == "equal":
@@ -71,6 +66,7 @@ def main(
     sim_matrix = []
     print("Annotation (Inference) Content:", annotation_content)
     print("Support Content:", support_content)
+    print()
     
     if os.path.exists(output_filepath) and not overwrite:
         print("Loading existing similarity matrix...")
@@ -100,14 +96,15 @@ def main(
             labels.append(record['label'])
             target_classes.append(record['target_categories_mapped'])
 
-        # Prepare inference queries
-        queries = []
-        for idx, record in enumerate(inference_annots):
-            queries.append(record[annotation_content])
-
         
-        for query in queries:
-            sim_vector = bm25_similarity(query, corpus)
+        # Preprocessing: Tokenize the texts
+        tokenized_corpus = [tokenize(doc) for doc in corpus]
+        bm25 = BM25Okapi(tokenized_corpus)
+
+        # Prepare inference queries
+        for record in tqdm.tqdm(inference_annots):
+            query = record[annotation_content]
+            sim_vector = bm25_similarity(query, bm25)
             sim_matrix.append(sim_vector)
 
         with open(output_filepath, 'wb') as f:
@@ -127,7 +124,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
-    parser.add_argument("--annotation_content", type=str, required=True, choices=["content_text", "content_text_caption"])
+    parser.add_argument("--annotation_content", type=str, required=True, choices=["content_text", "content_text_caption", "rationale"])
     parser.add_argument("--caption_dir", type=str, default=None)
 
     parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")
