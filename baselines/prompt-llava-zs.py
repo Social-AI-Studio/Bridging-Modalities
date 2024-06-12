@@ -17,7 +17,6 @@ Evaluate the content using the definition of hate speech to determine if it is c
 
 Content:
 {content}
-
 Answer: [/INST]
 """
 

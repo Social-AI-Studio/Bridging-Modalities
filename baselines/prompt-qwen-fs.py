@@ -36,9 +36,13 @@ Evaluate the content using the definition of hate speech to determine if it is c
 
 EXAMPLE_TEMPLATE = """### Example {index}
 Content:{content}
-
 Answer: {answer}
 
+"""
+
+EXAMPLE_TEMPLATE_WITH_RATIONALE = """### Example {index}
+Content:{content}
+Answer: {answer}
 Rationale: {rationale}
 
 """
@@ -46,13 +50,10 @@ Rationale: {rationale}
 QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
 Content: {content}
-
 Answer: 
 """
 
-
-
-def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k=16):
+def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
     messages = []
 
     if use_demonstrations:
@@ -89,7 +90,10 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
         else:
             for index, s in enumerate(samples):
                 answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
-                example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
+                if "rationale" in s.keys():
+                    example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
+                else:
+                    example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], answer=answer)
                 formatted_examples.append(example)
 
     question = QUESTION_TEMPLATE.format(content=content['content'])
@@ -100,13 +104,32 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
     prompt = [{"role": "user", "content": joined_examples}]
     return prompt
 
-def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, use_demonstration, demonstration_selection,demonstration_distribution, support_filepaths, support_caption_dirs, support_feature_dirs, sim_matrix_filepath, debug_mode):
+def main(
+    model_id,
+    annotation_filepath,
+    caption_dir,
+    features_dir,
+    result_dir,
+    use_demonstration,
+    demonstration_selection,
+    demonstration_distribution,
+    support_filepaths,
+    support_caption_dirs,
+    support_feature_dirs,
+    sim_matrix_filepath,
+    debug_mode,
+    shots
+):
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir)
     support_annots = []
     for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
         annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
         support_annots += annots
     
+    if "rationale" not in sim_matrix_filepath:
+        for annot in support_annots:
+            annot.pop("rationale", None)
+
     with open(sim_matrix_filepath, 'rb') as f:
         sim_matrix = np.load(f)
         labels = np.load(f)
@@ -154,7 +177,8 @@ def main(model_id, annotation_filepath, caption_dir, features_dir, result_dir, u
                 demonstration_distribution,
                 support_annots,
                 sim_matrix,
-                labels
+                labels,
+                shots
             )
             
 
@@ -242,6 +266,7 @@ if __name__ == "__main__":
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
     parser.add_argument("--sim_matrix_filepath", type=str, required=True)
+    parser.add_argument("--shots", type=int, required=True)
 
     args = parser.parse_args()
 
@@ -258,6 +283,7 @@ if __name__ == "__main__":
         args.support_caption_dirs,
         args.support_feature_dirs,
         args.sim_matrix_filepath,
-        args.debug_mode
+        args.debug_mode,
+        args.shots
     )
 

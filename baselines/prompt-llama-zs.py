@@ -18,7 +18,6 @@ Based on the provided definition of hate speech, determine whether the following
 
 Content:
 {content}
-
 Answer:
 """
 

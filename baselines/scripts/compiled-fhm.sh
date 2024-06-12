@@ -11,8 +11,7 @@
 #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
 #     --result_dir ../../../results/baselines/llama-3-zs/fhm_finegrained
 
-LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/truncated/explanations/train-explanations.jsonl
-MMHS=/mnt/data1/datasets/temp/MMHS150K/explanations/train-explanations.jsonl
+LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
 MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explanation.jsonl
 
 python3 ../../prompt-mistral-fs.py \
@@ -24,7 +23,7 @@ python3 ../../prompt-mistral-fs.py \
     --use_demonstrations \
     --demonstration_selection "tf-idf" \
     --demonstration_distribution "top-k" \
-    --support_filepaths $LATENT_HATRED $MISOGYNISTIC_MEME \
-    --support_caption_dirs "" /mnt/data1/datasets/temp/MMHS150K/captions/deepfillv2/blip2-opt-6.7b-coco \
-    --support_feature_dirs "" "" \
-    --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/fhm_tfidf_matching.npy
+    --support_filepaths $LATENT_HATRED \
+    --support_caption_dirs "" \
+    --support_feature_dirs "" \
+    --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/text/fhm_lh_tfidf_matching.npy
