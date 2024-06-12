@@ -16,7 +16,7 @@ def compute_corpus_matrix(corpus):
     
     return tfidf_matrix, vectorizer
 
-def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
+def get_top_k_similar(sim_vector, labels, k, selection):
     if selection == "equal":
         indices = sim_vector.argsort()[::-1]
         
@@ -38,15 +38,14 @@ def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
         records_sorted_by_label = sorted(records, key=lambda x: x[2], reverse=True)
         return records_sorted_by_label
     else:
-        
         indices = sim_vector.argsort()[-k:][::-1]
+
         records = []
         for ind in indices:
             label = labels[ind]
             prob = sim_vector[ind]
-            target_classes=support_target_classes[ind]
 
-            records.append((ind, prob, label, target_classes))
+            records.append((ind, prob, label))
 
         return records
 
@@ -114,11 +113,11 @@ def main(
 
     # Example: Getting top 4 similar records for first record
     sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, target_classes, 6, selection="random")
+    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
     print(similar_entries)
 
     sim_vector = sim_matrix[0]
-    similar_entries = get_top_k_similar(sim_vector, labels, target_classes, 6, selection="equal")
+    similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="equal")
     print(similar_entries)
 
 if __name__ == "__main__":
