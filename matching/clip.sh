@@ -1,10 +1,9 @@
-LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/truncated/explanations/train-explanations.jsonl
-MMHS=/mnt/data1/datasets/temp/MMHS150K/explanations/train-explanations.jsonl
+LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
 MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explanation.jsonl
 
 python3 clip_wrapper.py \
     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/blip2-opt-6.7b-coco \
+    --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
     --feature_dir /mnt/data1/datasets/memes/cmtl-rag/mami/embeddings/clip-ViT-B-32 \
     --image_dir /mnt/data1/datasets/memes/mami/images/deepfillv2/test \
     --support_filepaths $LATENT_HATRED $MISOGYNISTIC_MEME \

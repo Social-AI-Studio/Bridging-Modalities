@@ -59,18 +59,25 @@ def get_top_k_similar(sim_vector, labels, k, selection):
 
 def main(
         annotation_filepath,
+        annotation_content,
         caption_dir,
         support_filepaths,
         support_caption_dirs,
-        output_filepath
+        support_content,
+        output_filepath,
+        overwrite
     ):
     
     sim_matrix = []
-    if os.path.exists(output_filepath):
+    print("Annotation (Inference) Content:", annotation_content)
+    print("Support Content:", support_content)
+    
+    if os.path.exists(output_filepath) and not overwrite:
         print("Loading existing similarity matrix...")
         with open(output_filepath, 'rb') as f:
             sim_matrix = np.load(f)
             labels = np.load(f)
+            target_classes=np.load(f)
     else:
         # Load the inference annotations
         inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
@@ -81,29 +88,32 @@ def main(
         for filepath, support_caption_dir in zip(support_filepaths, support_caption_dirs):
             annots = load_support_dataset(filepath, support_caption_dir, None)
             support_annots += annots
-        # corpus = df['mistral_instruct_statement'].tolist()
-        # classes = df['class'].tolist()
+
         print("Num Support Examples:", len(support_annots))
 
         # Prepare corpus
         corpus = [] 
         labels = []
+        target_classes = []
         for idx, record in enumerate(support_annots):
-            corpus.append(record['content_for_retrieval'])
+            corpus.append(record[support_content])
             labels.append(record['label'])
+            target_classes.append(record['target_categories_mapped'])
 
+        # Prepare inference queries
         queries = []
         for idx, record in enumerate(inference_annots):
-            queries.append(record['content_for_retrieval'])
+            queries.append(record[annotation_content])
 
-        result = []
+        
         for query in queries:
             sim_vector = bm25_similarity(query, corpus)
-            result.append(sim_vector)
+            sim_matrix.append(sim_vector)
 
         with open(output_filepath, 'wb') as f:
-            np.save(f, np.array(result))
+            np.save(f, np.array(sim_matrix))
             np.save(f, np.array(labels))
+            np.save(f, np.array(target_classes, dtype=object))
 
     # Example: Getting top 4 similar records for first record
     sim_vector = sim_matrix[0]
@@ -117,18 +127,24 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
+    parser.add_argument("--annotation_content", type=str, required=True, choices=["content_text", "content_text_caption"])
     parser.add_argument("--caption_dir", type=str, default=None)
 
     parser.add_argument("--support_filepaths", nargs="+", required=True, help="The support datasets")
     parser.add_argument("--support_caption_dirs", nargs='+')
+    parser.add_argument("--support_content", type=str, required=True, choices=["content_text", "content_text_caption", "rationale"])
 
-    parser.add_argument("--output_filepath", type=str, required=True, help="The support datasets")
+    parser.add_argument("--output_filepath", type=str, required=True)
+    parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
+        args.annotation_content,
         args.caption_dir,
         args.support_filepaths,
         args.support_caption_dirs,
-        args.output_filepath
+        args.support_content,
+        args.output_filepath,
+        args.overwrite
     )
