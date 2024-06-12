@@ -1,9 +1,9 @@
 import os
 import json
 
-ANNOTATIONS_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment.jsonl"
+ANNOTATIONS_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/annotations/train.json"
 RATIONALE_DIR = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/rationales/mistral-v0.3-7b/few_shot_10_shots_cleaned"
-OUTPUT_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment_rationales_{k}.jsonl"
+OUTPUT_FILEPATH = "/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/train_rationales_{k}.jsonl"
 
 def load_rationale(content_id, rationales_dir):
     caption_filepath = os.path.join(rationales_dir, f"{content_id}.json")
@@ -37,6 +37,13 @@ for annot in annotations:
     annot["class_binarized"] = 1 if annot['gold_hate'][0] == "hateful" else 0
     annot["target_categories_mapped"] = [target_mapping[x] for x in annot['gold_pc']]
     annot["mistral_instruct_statement"] = load_rationale(f"{annot['id']:05}", RATIONALE_DIR)
+
+
+output_filepath = OUTPUT_FILEPATH.format(k="all")
+with open(output_filepath, "w+") as f:
+    for obj in annotations:
+        json.dump(obj, f)
+        f.write("\n")
 
 pc_records = {
     'nationality': [], 

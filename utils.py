@@ -52,9 +52,7 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
         obj = {}
         
         if "fhm" in annotation_filepath:
-            obj["id"] = str(annot["id"])
-            if len(obj["id"]) < 5:
-                obj["id"] = "0" + obj["id"]
+            obj["id"] = f"{annot['id']:05}"
             obj["img"] = os.path.basename(annot['img'])
             obj["text"] = annot['text']
             obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
@@ -70,6 +68,9 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
             obj["multimodal_record"] = True
 
             obj["target_categories_mapped"] = [fhm_target_mapping[x] for x in annot["gold_pc"]]
+
+            if 'mistral_instruct_statement' in annot:
+                obj["rationale"] = annot['mistral_instruct_statement']
 
         if "mami" in annotation_filepath:
             obj["id"] = annot["file_name"][:-4]
@@ -106,6 +107,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
         obj = {}
         
         if "latent_hatred" in annotation_filepath:
+            obj["id"] = annot["id"]
             obj["img"] = "N/A"
             obj["text"] = annot['post']
             obj["label"] = annot['class_binarized']
@@ -113,7 +115,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["caption"] = "N/A"
             obj["content"] = POST_CONTENT_TEMPLATE.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
-            obj["context_text_caption"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']}"
 
             obj["rationale"] = annot["mistral_instruct_statement"]
             obj["target_categories_mapped"] = annot["target_categories_mapped"]
@@ -126,8 +128,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
-            obj["context_text"] = f"{obj['text']}"
-            obj["context_text_caption"] = f"{obj['text']} {obj['caption']}"
+            obj["content_text"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
             obj["rationale"] = annot['mistral_instruct_statement']
 
@@ -151,6 +153,25 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
                 obj["features"] = features[obj["id"]]
 
             obj["rationale"] = annot['mistral_instruct_statement']
+            obj["target_categories_mapped"] = annot["target_categories_mapped"]
+            obj["multimodal_record"] = True
+            
+        if "fhm" in annotation_filepath.lower():
+            obj["id"] = f"{annot['id']:05}"
+            obj["img"] = os.path.basename(annot['img'])
+            obj["text"] = annot['text']
+            obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
+
+            obj["caption"] = load_caption(obj['img'], caption_dir)
+            obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_text"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
+
+            if features_dir is not None and features_dir != "":
+                obj["features"] = features[obj["id"]]
+
+            obj["rationale"] = annot['mistral_instruct_statement']
+            obj["target_categories_mapped"] = annot["target_categories_mapped"]
             obj["multimodal_record"] = True
             
         if "misogynistic_meme" in annotation_filepath.lower():
@@ -161,8 +182,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
 
             obj["caption"] = annot['caption']
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
-            obj["context_text"] = f"{obj['text']}"
-            obj["context_text_caption"] = f"{obj['text']} {obj['caption']}"
+            obj["content_text"] = f"{obj['text']}"
+            obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
             obj["rationale"] = annot["mistral_instruct_statement"]
             
@@ -173,5 +194,5 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             
         processed_annotations.append(obj)
 
-    print(f"{len(processed_annotations)} records have been loaded")
+    # print(f"{len(processed_annotations)} records have been loaded")
     return processed_annotations

@@ -5,7 +5,6 @@ import json
 import argparse
 import pandas as pd
 import random
-import cv2
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from sklearn.metrics import f1_score, accuracy_score
@@ -18,9 +17,9 @@ from utils import load_inference_dataset, load_support_dataset
 # from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
 # from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
-from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from bm25_wrapper import get_top_k_similar as bm25_sampler
-from clip_wrapper import get_top_k_similar as clip_sampler
+from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+from matching.clip_wrapper import get_top_k_similar as clip_sampler
 # from sift_wrapper import get_top_k_similar as sift_sampler
 
 
@@ -139,17 +138,8 @@ def main(
 
     os.makedirs(result_dir, exist_ok=True)
 
-    import torch
-    torch_dtype = torch.float16
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch_dtype,
-        bnb_4bit_use_double_quant=True,
-    )
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        # quantization_config=bnb_config,
         device_map="auto",
     )
         
@@ -199,7 +189,7 @@ def main(
             
             outputs = model.generate(
                 input_ids,
-                max_new_tokens=256,
+                max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )

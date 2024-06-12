@@ -190,7 +190,7 @@ def main(
             
             outputs = model.generate(
                 input_ids,
-                max_new_tokens=256,
+                max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )
