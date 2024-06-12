@@ -257,9 +257,6 @@ def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, 
     else:
         raise NotImplementedError(f"prompt_approach `{prompt_approach}` not implemented")
 
-    output_dir = os.path.join(output_dir, prompt_approach)
-    os.makedirs(output_dir, exist_ok=True)
-
     records = []
     import tqdm
     for memeID, text, label, gold_pc in tqdm.tqdm(zip(df['id'], df['text'], df['gold_hate'], df['gold_pc'])):

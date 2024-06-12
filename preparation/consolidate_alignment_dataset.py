@@ -34,8 +34,9 @@ target_mapping = {
 
 targets = []
 for annot in annotations:
+    annot["class_binarized"] = 1 if annot['gold_hate'][0] == "hateful" else 0
+    annot["target_categories_mapped"] = [target_mapping[x] for x in annot['gold_pc']]
     annot["mistral_instruct_statement"] = load_rationale(f"{annot['id']:05}", RATIONALE_DIR)
-    annot["gold_pc_mapped"] = [target_mapping[x] for x in annot['gold_pc']]
 
 pc_records = {
     'nationality': [], 

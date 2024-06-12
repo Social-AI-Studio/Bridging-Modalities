@@ -48,7 +48,9 @@ for annot in annotations:
     rationale = load_rationale(annot['ID'], RATIONALE_DIR)
     if rationale:
         obj = {}
+        obj["id"] = annot['ID']
         obj["post"] = annot['post']
+        obj["text"] = annot['post']
         obj["class"] = label_mapping[annot['class']]
         obj["class_binarized"] = 1 if label_mapping[annot['class']] >= 1 else 0
         
