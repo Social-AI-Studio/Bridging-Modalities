@@ -28,7 +28,6 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype="auto",
         device_map="auto",
     )
     tokenizer = AutoTokenizer.from_pretrained(model_id)

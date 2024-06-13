@@ -5,7 +5,6 @@ import json
 import argparse
 import pandas as pd
 import random
-import cv2
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from sklearn.metrics import f1_score, accuracy_score
@@ -18,9 +17,9 @@ from utils import load_inference_dataset, load_support_dataset
 # from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
 # from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
-from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from bm25_wrapper import get_top_k_similar as bm25_sampler
-from clip_wrapper import get_top_k_similar as clip_sampler
+from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from clip_wrapper import get_top_k_similar as clip_sampler
 # from sift_wrapper import get_top_k_similar as sift_sampler
 
 
@@ -139,7 +138,6 @@ def main(
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        torch_dtype="auto",
         device_map="auto",
     )
         
@@ -157,6 +155,9 @@ def main(
     
     if debug_mode:
         inference_annots = inference_annots[:5]
+
+    if demonstration_selection == "random":
+        random.seed(2024)
 
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
@@ -191,7 +192,7 @@ def main(
 
             generated_ids = model.generate(
                 model_inputs.input_ids,
-                max_new_tokens=256,
+                max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )

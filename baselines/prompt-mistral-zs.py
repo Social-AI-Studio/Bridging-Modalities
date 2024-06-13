@@ -5,7 +5,7 @@ import json
 import argparse
 import pandas as pd
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from sklearn.metrics import f1_score, accuracy_score
 from utils import load_inference_dataset, load_support_dataset
 
@@ -27,13 +27,6 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
     os.makedirs(result_dir, exist_ok=True)
 
     import torch
-    torch_dtype = torch.float16
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch_dtype,
-        bnb_4bit_use_double_quant=True,
-    )
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         # quantization_config=bnb_config,

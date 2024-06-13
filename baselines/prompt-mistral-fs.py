@@ -19,7 +19,7 @@ from utils import load_inference_dataset, load_support_dataset
 
 from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-from matching.clip_wrapper import get_top_k_similar as clip_sampler
+# from matching.clip_wrapper import get_top_k_similar as clip_sampler
 # from sift_wrapper import get_top_k_similar as sift_sampler
 
 
@@ -157,6 +157,9 @@ def main(
     
     if debug_mode:
         inference_annots = inference_annots[:5]
+
+    if demonstration_selection == "random":
+        random.seed(2024)
 
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
