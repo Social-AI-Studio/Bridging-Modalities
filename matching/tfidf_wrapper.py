@@ -68,7 +68,7 @@ def main(
         with open(output_filepath, 'rb') as f:
             sim_matrix = np.load(f)
             labels = np.load(f)
-            target_classes=np.load(f)
+            target_classes = np.load(f, allow_pickle=True)
     else:
         # Load the inference annotations
         inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
@@ -112,12 +112,9 @@ def main(
             np.save(f, np.array(target_classes, dtype=object))
 
     # Example: Getting top 4 similar records for first record
-    print(inference_annots[0])
-
     sim_vector = sim_matrix[0]
     similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="random")
     print(similar_entries)
-    print(support_annots[similar_entries[0][0]])
 
     sim_vector = sim_matrix[0]
     similar_entries = get_top_k_similar(sim_vector, labels, 4, selection="equal")

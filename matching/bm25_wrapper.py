@@ -73,7 +73,7 @@ def main(
         with open(output_filepath, 'rb') as f:
             sim_matrix = np.load(f)
             labels = np.load(f)
-            target_classes=np.load(f)
+            target_classes=np.load(f, allow_pickle=True)
     else:
         # Load the inference annotations
         inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
