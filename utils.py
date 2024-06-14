@@ -2,7 +2,7 @@ import os
 import json
 import pickle
 
-MEME_CONTENT_TEMPLATE = "A meme with the caption, '{caption}', and overlay text that reads, {text}"
+MEME_CONTENT_TEMPLATE = "A meme with the caption, '{caption}', and overlay text, '{text}'"
 POST_CONTENT_TEMPLATE= "A post containing '{text}'"
 
 fhm_target_mapping = {
@@ -85,6 +85,8 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
 
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
+
+            obj["target_categories_mapped"] = [1]
 
             obj["multimodal_record"] = True
 
