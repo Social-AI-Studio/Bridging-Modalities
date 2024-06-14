@@ -58,8 +58,8 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
     if use_demonstrations:
 
         if demonstration_selection == "random":
-            random.seed(content_idx)
-            samples = random.sample(support_annots, k)
+            similar_entry_indices = sim_matrix[content_idx][:k]
+            samples = [support_annots[index] for index in similar_entry_indices]
 
         if demonstration_selection == "tf-idf":
             similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
@@ -89,6 +89,7 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
             pass
         else:
             for index, s in enumerate(samples):
+                print(s.keys())
                 answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
                 if "rationale" in s.keys():
                     example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
@@ -98,9 +99,10 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
 
     question = QUESTION_TEMPLATE.format(content=content['content'])
     formatted_examples.append(question)
-    
 
     joined_examples = "".join(formatted_examples)
+    print(joined_examples)
+    exit()
     prompt = [{"role": "user", "content": joined_examples}]
     return prompt
 
@@ -125,10 +127,6 @@ def main(
     for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
         annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
         support_annots += annots
-    
-    if "rationale" not in sim_matrix_filepath:
-        for annot in support_annots:
-            annot.pop("rationale", None)
 
     with open(sim_matrix_filepath, 'rb') as f:
         sim_matrix = np.load(f)
@@ -139,7 +137,7 @@ def main(
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
-        device_map="auto",
+        device_map="cuda",
     )
         
     tokenizer = AutoTokenizer.from_pretrained(model_id)
