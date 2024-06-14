@@ -58,6 +58,7 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
     if use_demonstrations:
 
         if demonstration_selection == "random":
+            random.seed(content_idx)
             samples = random.sample(support_annots, k)
 
         if demonstration_selection == "tf-idf":
@@ -155,9 +156,6 @@ def main(
     
     if debug_mode:
         inference_annots = inference_annots[:5]
-
-    if demonstration_selection == "random":
-        random.seed(2024)
 
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
