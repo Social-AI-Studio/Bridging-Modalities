@@ -31,6 +31,7 @@ def main(
     for index, query in enumerate(inference_annots):
 
         total_queries_classes.append([query['target_categories_mapped']])
+        random.seed(index)
         samples = random.sample(support_annots, top_p)
         
         retrieved_doc_classes = [record['target_categories_mapped'] for record in samples]
