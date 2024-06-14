@@ -101,8 +101,6 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
     formatted_examples.append(question)
 
     joined_examples = "".join(formatted_examples)
-    print(joined_examples)
-    exit()
     prompt = [{"role": "user", "content": joined_examples}]
     return prompt
 
