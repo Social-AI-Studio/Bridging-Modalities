@@ -9,6 +9,7 @@ def label_apk(
     ):
     if len(document_targets) > k:
         document_targets = document_targets[:k]
+    assert len(document_targets) == k
 
     if debug:
         print(expected_target)
@@ -46,11 +47,16 @@ def categories_apk(
     ):
 
     if len(document_targets) > k:
-        document_targets = document_targets[:k -1]
+        document_targets = document_targets[:k]
 
     if debug:
         print(expected_targets)
         print(document_targets)
+
+    assert isinstance(document_targets, list)
+    assert isinstance(document_targets[0], list)
+    assert isinstance(document_targets[0][0], int)
+    assert len(document_targets) == k
         
     # Determine if each document is relevant
     relevance = [1 if any(target in doc for target in expected_targets) else 0 for doc in document_targets]

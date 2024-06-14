@@ -63,6 +63,7 @@ def main(
 
     if debug:
         inference_annots = inference_annots[:3]
+
     for index, query in enumerate(inference_annots):
 
         # Get query labels and categories
@@ -70,7 +71,7 @@ def main(
         if query['label'] == 0:
             query_categories.append([0])
         else:    
-            query_categories.append([query['target_categories_mapped']])
+            query_categories.append(query['target_categories_mapped'])
 
         # Retrieve the similarity vectors
         sim_vector = sim_matrix[index]
@@ -84,17 +85,28 @@ def main(
             if entry[2] == 0:
                 similar_categories.append([0])
             else:    
-                similar_categories.append([entry[3]])
+                similar_categories.append(entry[3])
 
         support_labels.append(similar_labels)
         support_categories.append(similar_categories)
 
+    print("Computing for Binary Labels...")
+    maps = []
     for k in [1,4,8,16]:
         map_at_k = label_mapk(query_labels, support_labels, k, debug)
         print(f"Mean Average Precision at {k}: {map_at_k:04}")
+        map_at_k = str(round(map_at_k, 4))
+        maps.append(map_at_k)
+    print(",".join(maps))
 
+    print("Computing for Fine-Grained Categories...")
+    maps = []
+    for k in [1,4,8,16]:
         map_at_k = categories_mapk(query_categories, support_categories, k, debug)
         print(f"Mean Average Precision at {k}: {map_at_k:04}")
+        map_at_k = str(round(map_at_k, 4))
+        maps.append(map_at_k)
+    print(",".join(maps))
 
 
 if __name__ == "__main__":
