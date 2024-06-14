@@ -9,5 +9,4 @@ MAMI_CAPS=/mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-capt
 python3 retrieval_scorer.py \
     --annotation_filepath $MAMI \
     --caption_dir $MAMI_CAPS \
-    --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/text/mami_lh_bm25_matching.npy \
-    --top_p 1
+    --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/text/mami_lh_bm25_matching.npy

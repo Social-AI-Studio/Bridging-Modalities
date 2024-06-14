@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from utils import load_inference_dataset, load_support_dataset
-from calc_utils import mapk
+from calc_utils import categories_mapk, label_mapk
 
 def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
     if selection == "equal":
@@ -43,34 +43,55 @@ def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
 def main(
         annotation_filepath,
         caption_dir,
-        sim_matrix_path,
-        top_p
+        sim_matrix_path
     ):
     
     print("Loading existing similarity matrix...")
     with open(sim_matrix_path, 'rb') as f:
             sim_matrix = np.load(f)
             labels = np.load(f)
-            target_classes=np.load(f, allow_pickle=True)
+            target_classes = np.load(f, allow_pickle=True)
     
     # Load the inference annotations
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
 
-    total_queries_classes = []
-    total_support_classes = []
+    query_labels = []
+    query_categories = []
+    support_labels = []
+    support_categories = []
 
     for index, query in enumerate(inference_annots):
 
-        total_queries_classes.append([query['target_categories_mapped']])
+        # Get query labels and categories
+        query_labels.append(query['label'])
+        if query['label'] == 0:
+            query_categories.append([0])
+        else:    
+            query_categories.append([query['target_categories_mapped']])
 
+        # Retrieve the similarity vectors
         sim_vector = sim_matrix[index]
-        similar_entries = get_top_k_similar(sim_vector, labels, target_classes, top_p, selection="random")
-        retrieved_doc_classes = [entry[3] for entry in similar_entries]
+        similar_entries = get_top_k_similar(sim_vector, labels, target_classes, 16, selection="random")
 
-        total_support_classes.append(retrieved_doc_classes)
+        # Get support labels and categories
+        similar_labels, similar_categories = [], []
+        for entry in similar_entries:
+            similar_labels.append(entry[2])
 
-    map_at_k = mapk(total_queries_classes, total_support_classes, top_p)
-    print(f"Mean Average Precision at {top_p}: {map_at_k:04}")
+            if entry[2] == 0:
+                similar_categories.append([0])
+            else:    
+                similar_categories.append([entry[3]])
+
+        support_labels.append(similar_labels)
+        support_categories.append(similar_categories)
+
+    for k in [4]:
+        map_at_k = label_mapk(query_labels, support_labels, k)
+        print(f"Mean Average Precision at {k}: {map_at_k:04}")
+
+        map_at_k = label_mapk(support_categories, support_categories, k)
+        print(f"Mean Average Precision at {k}: {map_at_k:04}")
 
 
 if __name__ == "__main__":
@@ -78,12 +99,10 @@ if __name__ == "__main__":
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
     parser.add_argument("--caption_dir", type=str)
     parser.add_argument("--sim_matrix_filepath", type=str)
-    parser.add_argument("--top_p", type=int)
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
         args.caption_dir,
-        args.sim_matrix_filepath,
-        args.top_p
+        args.sim_matrix_filepath
     )
