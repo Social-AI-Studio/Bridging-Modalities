@@ -43,7 +43,8 @@ def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
 def main(
         annotation_filepath,
         caption_dir,
-        sim_matrix_path
+        sim_matrix_path,
+        debug
     ):
     
     print("Loading existing similarity matrix...")
@@ -60,6 +61,8 @@ def main(
     support_labels = []
     support_categories = []
 
+    if debug:
+        inference_annots = inference_annots[:3]
     for index, query in enumerate(inference_annots):
 
         # Get query labels and categories
@@ -86,11 +89,11 @@ def main(
         support_labels.append(similar_labels)
         support_categories.append(similar_categories)
 
-    for k in [4]:
-        map_at_k = label_mapk(query_labels, support_labels, k)
+    for k in [1,4,8,16]:
+        map_at_k = label_mapk(query_labels, support_labels, k, debug)
         print(f"Mean Average Precision at {k}: {map_at_k:04}")
 
-        map_at_k = label_mapk(support_categories, support_categories, k)
+        map_at_k = categories_mapk(query_categories, support_categories, k, debug)
         print(f"Mean Average Precision at {k}: {map_at_k:04}")
 
 
@@ -99,10 +102,12 @@ if __name__ == "__main__":
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
     parser.add_argument("--caption_dir", type=str)
     parser.add_argument("--sim_matrix_filepath", type=str)
+    parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
     main(
         args.annotation_filepath,
         args.caption_dir,
-        args.sim_matrix_filepath
+        args.sim_matrix_filepath,
+        args.debug
     )

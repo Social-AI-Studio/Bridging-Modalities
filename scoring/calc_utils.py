@@ -7,12 +7,12 @@ def label_apk(
         k=10,
         debug=False,
     ):
-    """
-        actual: 
-    """
-
     if len(document_targets) > k:
         document_targets = document_targets[:k]
+
+    if debug:
+        print(expected_target)
+        print(document_targets)
 
     relevant_count = 0.0
     precisions = []
@@ -26,7 +26,14 @@ def label_apk(
             if debug:
                 print(f"p@{i}: {precision_at_i}")
 
-    return sum(precisions) / len(precisions) if precisions else 0
+    if precisions:
+        average_precision = sum(precisions) / len(precisions)
+    else:
+        average_precision = 0.0
+
+    if debug:
+        print(f"ap@{k}: {average_precision}")
+    return average_precision
 
 def label_mapk(expected_targets, document_targets, k, debug=False):
     return np.mean([label_apk(a,p,k,debug) for a,p in zip(expected_targets, document_targets)])
@@ -37,8 +44,14 @@ def categories_apk(
         k=10,
         debug=False,
     ):
-    print(expected_targets)
-    print(document_targets)
+
+    if len(document_targets) > k:
+        document_targets = document_targets[:k -1]
+
+    if debug:
+        print(expected_targets)
+        print(document_targets)
+        
     # Determine if each document is relevant
     relevance = [1 if any(target in doc for target in expected_targets) else 0 for doc in document_targets]
 
@@ -60,6 +73,8 @@ def categories_apk(
     else:
         average_precision = 0.0
 
+    if debug:
+        print(f"ap@{k}: {average_precision}")
     return average_precision
 
 def categories_mapk(expected_targets, document_targets, k, debug=False):
