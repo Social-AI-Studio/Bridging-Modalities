@@ -34,13 +34,13 @@ Evaluate the content using the definition of hate speech to determine if it is c
 """
 
 EXAMPLE_TEMPLATE = """### Example {index}
-Content:{content}
+Content: {content}
 Answer: {answer}
 
 """
 
 EXAMPLE_TEMPLATE_WITH_RATIONALE = """### Example {index}
-Content:{content}
+Content: {content}
 Answer: {answer}
 Rationale: {rationale}
 
@@ -49,8 +49,7 @@ Rationale: {rationale}
 QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
 Content: {content}
-Answer: 
-"""
+Answer: """
 
 def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
     messages = []
@@ -89,7 +88,6 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
             pass
         else:
             for index, s in enumerate(samples):
-                print(s.keys())
                 answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
                 if "rationale" in s.keys():
                     example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)

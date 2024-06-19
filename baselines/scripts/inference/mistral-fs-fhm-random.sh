@@ -1,9 +1,12 @@
 LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
 
-FHM_RANDOM=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices_finalized/random/500_21472_matching.npy
-MAMI_RANDOM=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices_finalized/random/1000_21472_matching.npy
+FHM_RANDOM=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices_finalized/random/500_8500_matching.npy
+MAMI_RANDOM=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices_finalized/random/1000_8500_matching.npy
 
 MODEL=mistralai/Mistral-7B-Instruct-v0.3
+
+FHM_ALIGNMENT_MEME=/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment_rationales_all.jsonl
+FHM_ALIGNMENT_CAPTIONS=/mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption
 
 for EXP in 4 8 16
 do
@@ -17,15 +20,15 @@ do
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --feature_dir "" \
-        --result_dir ../../../results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
+        --result_dir ../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
         --use_demonstrations \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
+        --support_filepaths $FHM_ALIGNMENT_MEME \
+        --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
         --support_feature_dirs "" \
         --sim_matrix_filepath $FHM_RANDOM \
-        --shots $EXP > ../../logs/$EXP_NAME/random/$MODEL/fhm-random.log
+        --shots $EXP > ../../fhm-logs/$EXP_NAME/random/$MODEL/fhm-random.log
 
     # mistral-mami
     # # random
@@ -35,14 +38,14 @@ do
         --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --feature_dir "" \
-        --result_dir ../../../results/baselines/$EXP_NAME/random/$MODEL/mami/random \
+        --result_dir ../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/mami/random \
         --use_demonstrations \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
+        --support_filepaths $FHM_ALIGNMENT_MEME \
+        --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
         --support_feature_dirs "" \
         --sim_matrix_filepath $MAMI_RANDOM \
-        --shots $EXP > ../../logs/$EXP_NAME/random/$MODEL/mami-random.log
+        --shots $EXP > ../../fhm-logs/$EXP_NAME/random/$MODEL/mami-random.log
 
 done

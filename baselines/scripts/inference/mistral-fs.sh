@@ -28,7 +28,7 @@ ln -s /mnt/data1/CMTL-RAG/matching /mnt/data1/CMTL-RAG/baselines/
 #     --sim_matrix_filepath $FHM_TFIDF \
 #     --shots $EXP 
 
-for EXP in 4 8 16
+for EXP in 4
 do
     EXP_NAME=${EXP}_shots
     echo $EXP_NAME
@@ -67,37 +67,37 @@ do
         --shots $EXP > ../../logs/$EXP_NAME/$1/$MODEL/fhm-bm25.log
 
 
-    # tf-idf
+    # # tf-idf
 
-    python3 -u ../../prompt-mistral-fs.py \
-        --model_id $MODEL \
-        --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-        --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
-        --feature_dir "" \
-        --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/mami/tfidf \
-        --use_demonstrations \
-        --demonstration_selection "tf-idf" \
-        --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
-        --support_feature_dirs "" \
-        --sim_matrix_filepath $MAMI_TFIDF \
-        --shots $EXP > ../../logs/$EXP_NAME/$1/$MODEL/mami-tfidf.log
+    # python3 -u ../../prompt-mistral-fs.py \
+    #     --model_id $MODEL \
+    #     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
+    #     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
+    #     --feature_dir "" \
+    #     --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/mami/tfidf \
+    #     --use_demonstrations \
+    #     --demonstration_selection "tf-idf" \
+    #     --demonstration_distribution "top-k" \
+    #     --support_filepaths $LATENT_HATRED \
+    #     --support_caption_dirs "" \
+    #     --support_feature_dirs "" \
+    #     --sim_matrix_filepath $MAMI_TFIDF \
+    #     --shots $EXP > ../../logs/$EXP_NAME/$1/$MODEL/mami-tfidf.log
 
-    # bm-25
+    # # bm-25
 
-    python3 -u ../../prompt-mistral-fs.py \
-        --model_id $MODEL \
-        --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-        --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
-        --feature_dir "" \
-        --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/mami/bm25 \
-        --use_demonstrations \
-        --demonstration_selection "bm-25" \
-        --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
-        --support_feature_dirs "" \
-        --sim_matrix_filepath $MAMI_BM25 \
-        --shots $EXP > ../../logs/$EXP_NAME/$1/$MODEL/mami-bm25.log
+    # python3 -u ../../prompt-mistral-fs.py \
+    #     --model_id $MODEL \
+    #     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
+    #     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
+    #     --feature_dir "" \
+    #     --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/mami/bm25 \
+    #     --use_demonstrations \
+    #     --demonstration_selection "bm-25" \
+    #     --demonstration_distribution "top-k" \
+    #     --support_filepaths $LATENT_HATRED \
+    #     --support_caption_dirs "" \
+    #     --support_feature_dirs "" \
+    #     --sim_matrix_filepath $MAMI_BM25 \
+    #     --shots $EXP > ../../logs/$EXP_NAME/$1/$MODEL/mami-bm25.log
 done

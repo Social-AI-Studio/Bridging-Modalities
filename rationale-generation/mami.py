@@ -223,11 +223,12 @@ def load_entities(entity_dir, filename):
     with open(filepath) as f:
         d = json.load(f)
 
-    if 'webEntities' not in d['webDetection']:
+
+    if 'web_entities' not in d:
         return "N/A"
 
     
-    return ', '.join([x['description'] for x in d['webDetection']['webEntities'] if 'description' in x])
+    return ', '.join([x[0] for x in d['web_entities']])
 
 
 def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, prompt_approach, num_splits, split):
@@ -236,6 +237,8 @@ def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, 
     
     output_dir = os.path.join(output_dir, prompt_approach)
     os.makedirs(output_dir, exist_ok=True)
+    df['id'] = df['file_name'].apply(lambda x: os.path.splitext(x)[0])
+    df['gold_pc'] = df['misogynous'].apply(lambda x: [1] if x == 1 else 0)
 
     df = df[~df['id'].apply(lambda x: os.path.exists(os.path.join(output_dir, f"{x:05}.json")))]
 
@@ -258,8 +261,8 @@ def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, 
 
     records = []
     import tqdm
-    for memeID, text, label, gold_pc in tqdm.tqdm(zip(df['id'], df['text'], df['gold_hate'], df['gold_pc'])):
-        label = label[0]
+
+    for memeID, text, label, gold_pc in tqdm.tqdm(zip(df['id'], df['Text Transcription'], df['misogynous'], df['gold_pc'])):
 
         filepath = os.path.join(output_dir, f"{memeID:05}.json")
         if os.path.exists(filepath):
@@ -267,7 +270,7 @@ def main(annotations_file, img_dir, captions_dir, web_entities_dir, output_dir, 
                 obj = json.load(f)
         else: 
             caption = load_captions(captions_dir, f"{memeID:05}.json")
-            web_entities = load_entities(web_entities_dir, f"{memeID:05}.png")
+            web_entities = load_entities(web_entities_dir, f"{memeID:05}.json")
 
             prompt = create_prompt(text, label, caption, web_entities)
             encodeds = tokenizer.apply_chat_template(prompt, return_tensors="pt").to(device)
