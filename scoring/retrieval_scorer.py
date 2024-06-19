@@ -5,58 +5,46 @@ import pandas as pd
 from utils import load_inference_dataset, load_support_dataset
 from calc_utils import categories_mapk, label_mapk
 
-def get_top_k_similar(sim_vector, labels, support_target_classes, k, selection):
-    if selection == "equal":
-        indices = sim_vector.argsort()[::-1]
-        
-        label_counter = {0: 0, 1: 0}
-        count_per_label = k // len(label_counter)
-        records = []
-        
-        for ind in indices:
-            label = labels[ind]
-            prob = sim_vector[ind]
-            target_classes=support_target_classes[ind]
+def get_top_k_similar(sim_vector, support_annots, k, demonstration_selection):
 
-            if label_counter[label] < count_per_label:
-                records.append((ind, prob, label, target_classes))
-                label_counter[label] += 1
-
-            if len(records) == k:
-                break
-
-        records_sorted_by_label = sorted(records, key=lambda x: x[2], reverse=True)
-        return records_sorted_by_label
+    if demonstration_selection == "random":
+        indices = sim_vector[:k]
     else:
-        
         indices = sim_vector.argsort()[-k:][::-1]
-        records = []
-        for ind in indices:
-            label = labels[ind]
-            prob = sim_vector[ind]
-            target_classes=support_target_classes[ind]
 
-            records.append((ind, prob, label, target_classes))
+    records = []
+    for ind in indices:
+        annot = support_annots[ind]
 
-        return records
+        records.append((ind, 0, annot['label'], annot['target_categories_mapped']))
+
+    return records
 
 def main(
         annotation_filepath,
         caption_dir,
+        support_filepaths,
+        support_caption_dirs,
+        support_feature_dirs,
+        demonstration_selection,
         sim_matrix_path,
         debug
     ):
     
     print("Loading existing similarity matrix...")
     with open(sim_matrix_path, 'rb') as f:
-            sim_matrix = np.load(f)
-            labels = np.load(f)
-            target_classes = np.load(f, allow_pickle=True)
+            sim_matrix = np.load(f)        
     print("Similarity Matrix:", sim_matrix.shape)
     
     # Load the inference annotations
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
     print("Inference Annots:", len(inference_annots))
+
+    support_annots = []
+    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
+        support_annots += annots
+    print("Support Annots:", len(support_annots))
 
     query_labels = []
     query_categories = []
@@ -77,7 +65,7 @@ def main(
 
         # Retrieve the similarity vectors
         sim_vector = sim_matrix[index]
-        similar_entries = get_top_k_similar(sim_vector, labels, target_classes, 16, selection="random")
+        similar_entries = get_top_k_similar(sim_vector, support_annots, 16, demonstration_selection)
 
         # Get support labels and categories
         similar_labels, similar_categories = [], []
@@ -115,6 +103,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Computing Text Similarity - TF-IDF")
     parser.add_argument("--annotation_filepath", type=str, required=True, help="The zero-shot inference dataset") 
     parser.add_argument("--caption_dir", type=str)
+    parser.add_argument("--support_filepaths", nargs='+')
+    parser.add_argument("--support_caption_dirs", nargs='+')
+    parser.add_argument("--support_feature_dirs", nargs='+')
+    parser.add_argument("--demonstration_selection", type=str, required=True)
     parser.add_argument("--sim_matrix_filepath", type=str)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
@@ -122,6 +114,10 @@ if __name__ == "__main__":
     main(
         args.annotation_filepath,
         args.caption_dir,
+        args.support_filepaths,
+        args.support_caption_dirs,
+        args.support_feature_dirs,
+        args.demonstration_selection,
         args.sim_matrix_filepath,
         args.debug
     )
