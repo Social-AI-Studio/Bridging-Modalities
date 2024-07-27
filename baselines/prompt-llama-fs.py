@@ -5,27 +5,22 @@ import json
 import argparse
 import pandas as pd
 import random
-import cv2
 import numpy as np
-from transformers import AutoTokenizer, LlavaNextForConditionalGeneration, AutoProcessor
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-)
-from PIL import Image
-import torch
+import transformers
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from bm25_wrapper import get_top_k_similar as bm25_sampler
 from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
 
-INTRODUCTION = """[INST] ## Definition of Hate Speech:
+# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from bm25_wrapper import get_top_k_similar as bm25_sampler
+
+
+INTRODUCTION = """## Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
 ## Instruction
@@ -36,15 +31,13 @@ Evaluate the content using the definition of hate speech to determine if it is c
 """
 
 EXAMPLE_TEMPLATE = """### Example {index}
-<image>
-Content:{content}
+Content: {content}
 Answer: {answer}
 
 """
 
 EXAMPLE_TEMPLATE_WITH_RATIONALE = """### Example {index}
-<image>
-Content:{content}
+Content: {content}
 Answer: {answer}
 Rationale: {rationale}
 
@@ -52,10 +45,9 @@ Rationale: {rationale}
 
 QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
-<image>
 Content: {content}
-Answer: [/INST]
-"""
+Answer: """
+
 
 
 def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
@@ -64,7 +56,8 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
     if use_demonstrations:
 
         if demonstration_selection == "random":
-            samples = random.sample(support_annots, k)
+            similar_entry_indices = sim_matrix[content_idx][:k]
+            samples = [support_annots[index] for index in similar_entry_indices]
 
         if demonstration_selection == "tf-idf":
             similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
@@ -75,6 +68,7 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
             similar_entries = bm25_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
             samples = [support_annots[index] for index in similar_entry_indices]
+
 
         formatted_examples = []
         formatted_examples.append(INTRODUCTION)
@@ -91,18 +85,17 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
 
     question = QUESTION_TEMPLATE.format(content=content['content'])
     formatted_examples.append(question)
+    
 
-    required_images = [Image.open(x['img_path']) for x in samples]
-
-    prompt = "".join(formatted_examples)
-    return prompt, required_images
+    joined_examples = "".join(formatted_examples)
+    prompt = [{"role": "user", "content": joined_examples}]
+    return prompt
 
 def main(
     model_id,
     annotation_filepath,
     caption_dir,
     features_dir,
-    image_dir,
     result_dir,
     use_demonstration,
     demonstration_selection,
@@ -110,30 +103,32 @@ def main(
     support_filepaths,
     support_caption_dirs,
     support_feature_dirs,
-    support_image_dirs,
     sim_matrix_filepath,
     debug_mode,
     shots
-):  
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, image_dir)
-    
-    support_annots = []
-    for filepath, support_caption_dir, support_feature_dir, support_image_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
-        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, support_image_dir)
-        support_annots += annots
+    ):
 
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, None)
+    support_annots = []
+    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, ):
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, None)
+        support_annots += annots
+    
     with open(sim_matrix_filepath, 'rb') as f:
         sim_matrix = np.load(f)
         labels = np.load(f)
 
     os.makedirs(result_dir, exist_ok=True)
 
-    model = LlavaNextForConditionalGeneration.from_pretrained(
-        model_id,
+    model = AutoModelForCausalLM.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/", device_map="cuda")
+    tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/", device_map="cuda")
+
+    pipeline = transformers.pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
         device_map="cuda",
-        cache_dir="/mnt/data1/aditi/hf/new_cache_dir/"
     )
-    tokenizer = AutoProcessor.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/")
 
     results = {
         "model": model_id,
@@ -144,10 +139,10 @@ def main(
         "y_true": [],
         "num_invalids": 0,
     }
-
+    
     if debug_mode:
         inference_annots = inference_annots[:5]
-    
+
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
         img, content = annot['img'], annot['content']
         id = annot["id"]
@@ -155,11 +150,11 @@ def main(
         filename = id + file_extension
         result_filepath = os.path.join(result_dir, filename)
 
-        if os.path.exists(result_filepath) and not debug_mode :
+        if os.path.exists(result_filepath) and not debug_mode:
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
-            messages, images = prepare_inputs(
+            messages = prepare_inputs(
                 annot,
                 idx,
                 use_demonstration,
@@ -170,22 +165,15 @@ def main(
                 labels,
                 shots
             )
-            images.append(Image.open(annot['img_path']))
             
-            
-            inputs = tokenizer(text=messages, images=images, return_tensors="pt").to(model.device)
-            
-            outputs = model.generate(
-                **inputs,
+
+            outputs = pipeline(
+                messages,
                 max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )
-            input_ids = inputs["input_ids"]
-            response = outputs[0][input_ids.shape[-1]:]
-            response_text = tokenizer.decode(response, skip_special_tokens=True)
-            
-            response_text= response_text.replace('\n', '')
+            response_text=outputs[0]["generated_text"][-1]['content']
             
             output_obj = {
                 "img": img,
@@ -235,6 +223,7 @@ def main(
     print(f"Num. Invalids: {results['num_invalids']}")
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("CMTL RAG Baseline")
     parser.add_argument("--model_id", type=str, required=True)
@@ -242,8 +231,6 @@ if __name__ == "__main__":
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
     parser.add_argument("--feature_dir", type=str, default=None)
-    parser.add_argument("--image_dir", type=str, default=None)
-
     parser.add_argument("--result_dir", type=str, required=True)
 
     parser.add_argument("--use_demonstrations", action="store_true")
@@ -252,7 +239,6 @@ if __name__ == "__main__":
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
     parser.add_argument("--support_feature_dirs", nargs='+')
-    parser.add_argument("--support_image_dirs", nargs='+')
     parser.add_argument("--sim_matrix_filepath", type=str, required=True)
     parser.add_argument("--shots", type=int, required=True)
 
@@ -263,7 +249,6 @@ if __name__ == "__main__":
         args.annotation_filepath,
         args.caption_dir,
         args.feature_dir,
-        args.image_dir,
         args.result_dir,
         args.use_demonstrations,
         args.demonstration_selection,
@@ -271,8 +256,8 @@ if __name__ == "__main__":
         args.support_filepaths,
         args.support_caption_dirs,
         args.support_feature_dirs,
-        args.support_image_dirs,
         args.sim_matrix_filepath,
         args.debug_mode,
         args.shots
     )
+

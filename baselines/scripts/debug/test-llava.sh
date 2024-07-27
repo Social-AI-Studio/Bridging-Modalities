@@ -1,30 +1,36 @@
-LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
-MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explanation.jsonl
-
 MODEL=llava-hf/llava-v1.6-mistral-7b-hf
 
-## zero shot
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-zs.py \
-    --model_id $MODEL \
-    --debug_mode True \
-    --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
-    --result_dir ../../../results/baselines/test-llava && 
+LATENT_HATRED=/mnt/data1/datasets/hatespeech/latent_hatred/projects/CMTL-RAG/annotations/annotations.jsonl
 
-## few shot
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-fs.py \
+FHM_RANDOM=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices_finalized/random/500_8500_matching.npy
+MAMI_RANDOM=/mnt/data1/datasets/memes/cmtl-rag/sim_matrices_finalized/random/1000_8500_matching.npy
+
+FHM_ALIGNMENT_MEME=/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment_rationales_all.jsonl
+FHM_ALIGNMENT_CAPTIONS=/mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption
+
+## zero shot
+# CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-llava-zs.py \
+#     --model_id $MODEL \
+#     --debug_mode True \
+#     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
+#     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
+#     --image_dir /mnt/data1/datasets/memes/fhm/images/img_clean \
+#     --result_dir ../../../results/baselines/test-llava  
+
+python3 ../../prompt-llava-fs.py \
     --model_id $MODEL \
-    --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-    --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
+    --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
     --feature_dir "" \
-    --result_dir ../../../results/baselines/test-llava \
+    --image_dir /mnt/data1/datasets/memes/fhm/images/img_clean \
+    --result_dir ../../../test-fhm-results/baselines/$EXP_NAME/random/$MODEL/fhm_finegrained/random \
     --use_demonstrations \
     --demonstration_selection "random" \
     --demonstration_distribution "top-k" \
-    --support_filepaths $LATENT_HATRED \
-    --support_caption_dirs "" \
-    --support_feature_dirs "" \
-    --sim_matrix_filepath /mnt/data1/datasets/memes/cmtl-rag/sim_matrices/rationale/fhm_lh_bm25_matching.npy \
-    --shots 4
-
+    --support_filepaths $FHM_ALIGNMENT_MEME \
+    --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
+    --support_feature_dirs ""  \
+    --support_image_dirs /mnt/data1/datasets/memes/fhm/images/img_clean \
+    --sim_matrix_filepath $FHM_RANDOM \
+    --shots 4 \
+    --debug_mode True
