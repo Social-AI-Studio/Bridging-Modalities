@@ -13,11 +13,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
 
-# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from bm25_wrapper import get_top_k_similar as bm25_sampler
+from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from bm25_wrapper import get_top_k_similar as bm25_sampler
 
 
 INTRODUCTION = """## Definition of Hate Speech:
@@ -174,6 +174,8 @@ def main(
                 num_beams=1
             )
             response_text=outputs[0]["generated_text"][-1]['content']
+            response_text= response_text.replace('\n', ' ')
+            response_text= response_text.replace('**', ' ')
             
             output_obj = {
                 "img": img,

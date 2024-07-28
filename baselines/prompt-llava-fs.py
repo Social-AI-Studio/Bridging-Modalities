@@ -29,7 +29,7 @@ INTRODUCTION = """[INST] ## Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
 ## Instruction
-Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
+Evaluate the content, including both the image and the text, using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
 
 ## Demonstration Examples
 
@@ -50,7 +50,7 @@ Rationale: {rationale}
 
 """
 
-QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
+QUESTION_TEMPLATE = """## Task: Evaluate the following content, including both the image and the text, and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
 
 <image>
 Content: {content}
@@ -170,7 +170,7 @@ def main(
                 labels,
                 shots
             )
-            images.append(Image.open(annot['img_path']))
+            images.append(Image.open(annot['img_path'])) ## append the inference image
             
             
             inputs = tokenizer(text=messages, images=images, return_tensors="pt").to(model.device)
@@ -184,8 +184,6 @@ def main(
             input_ids = inputs["input_ids"]
             response = outputs[0][input_ids.shape[-1]:]
             response_text = tokenizer.decode(response, skip_special_tokens=True)
-            
-            response_text= response_text.replace('\n', '')
             
             output_obj = {
                 "img": img,
