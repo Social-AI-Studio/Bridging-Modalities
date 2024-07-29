@@ -147,7 +147,6 @@ def prepare_inputs_system(content, content_idx, use_demonstrations, demonstratio
 
     question = QUESTION_TEMPLATE.format(content=content['content'])
     msg.append(question)
-    
 
     joined_examples = "\n".join(msg)
     prompt = [
@@ -239,7 +238,7 @@ def main(
         inference_annots = inference_annots[:5]
 
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
-        img, content = annot['img'], annot['content']
+        img, img_path, content = annot['img'], annot['content']
         id = annot["id"]
         file_extension = ".json"
         filename = id + file_extension

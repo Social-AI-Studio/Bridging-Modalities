@@ -2,6 +2,9 @@ import os
 import json
 import pickle
 
+from PIL import Image
+
+MEME_CONTENT_TEMPLATE_LLAVA = "A meme, <image-placeholder>, with overlay text, '{text}'"
 MEME_CONTENT_TEMPLATE = "A meme with the caption, '{caption}', and overlay text, '{text}'"
 POST_CONTENT_TEMPLATE= "A post containing '{text}'"
 
@@ -37,6 +40,16 @@ def load_features(features_dir):
 
     return data_dict
 
+def load_image(image_file):
+    image = Image.open(image_file).convert("RGB")
+    return image
+
+def load_images(image_files):
+    out = []
+    for image_file in image_files:
+        image = load_image(image_file)
+        out.append(image)
+    return out
 
 def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image_dir):
     annotations = []
@@ -54,13 +67,15 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image
         if "fhm" in annotation_filepath:
             obj["id"] = f"{annot['id']:05}"
             obj["img"] = os.path.basename(annot['img'])
-            if image_dir is not None:
-                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['text']
             obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
+            
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_llava"] = MEME_CONTENT_TEMPLATE_LLAVA.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
@@ -77,13 +92,15 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image
         if "mami" in annotation_filepath:
             obj["id"] = annot["file_name"][:-4]
             obj["img"] = annot['file_name']
-            if image_dir is not None:
-                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['Text Transcription']
             obj["label"] = annot['misogynous']
 
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
+
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_llava"] = MEME_CONTENT_TEMPLATE_LLAVA.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
@@ -120,6 +137,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_d
 
             obj["caption"] = "N/A"
             obj["content"] = POST_CONTENT_TEMPLATE.format(text=obj['text'])
+            obj["content_llava"] = POST_CONTENT_TEMPLATE.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']}"
 
@@ -136,6 +154,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_d
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_llava"] = MEME_CONTENT_TEMPLATE_LLAVA.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
@@ -156,6 +175,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_d
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_llava"] = MEME_CONTENT_TEMPLATE_LLAVA.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 
@@ -176,6 +196,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_d
 
             obj["caption"] = load_caption(obj['img'], caption_dir)
             obj["content"] = MEME_CONTENT_TEMPLATE.format(caption=obj['caption'], text=obj['text'])
+            obj["content_llava"] = MEME_CONTENT_TEMPLATE_LLAVA.format(text=obj['text'])
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']} {obj['caption']}"
 

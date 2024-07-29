@@ -1,142 +1,121 @@
-
+import re
 import tqdm
 import os
+import torch
 import json
 import argparse
 import pandas as pd
-import random
-import cv2
 import numpy as np
-from transformers import AutoTokenizer, LlavaNextForConditionalGeneration, AutoProcessor
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-)
 from PIL import Image
-import torch
 from sklearn.metrics import f1_score, accuracy_score
-from sklearn.metrics.pairwise import cosine_similarity
-from utils import load_inference_dataset, load_support_dataset
+from utils import load_inference_dataset, load_support_dataset, load_images
 
+from llava.constants import (
+    IMAGE_TOKEN_INDEX,
+    DEFAULT_IMAGE_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IM_END_TOKEN,
+    IMAGE_PLACEHOLDER,
+)
+from llava.conversation import conv_templates, SeparatorStyle
+from llava.model.builder import load_pretrained_model
+from llava.utils import disable_torch_init
+from llava.mm_utils import (
+    process_images,
+    tokenizer_image_token,
+    get_model_name_from_path,
+)
 
-# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from bm25_wrapper import get_top_k_similar as bm25_sampler
-from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+from fs_utils import prepare_inputs_llava
 
-INTRODUCTION = """[INST] ## Definition of Hate Speech:
-Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
+# Reference: https://github.dev/haotian-liu/LLaVA/pull/1502/files
 
-## Instruction
-Evaluate the content, including both the image and the text, using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
-
-## Demonstration Examples
-
-"""
-
-EXAMPLE_TEMPLATE = """### Example {index}
-<image>
-Content:{content}
-Answer: {answer}
-
-"""
-
-EXAMPLE_TEMPLATE_WITH_RATIONALE = """### Example {index}
-<image>
-Content:{content}
-Answer: {answer}
-Rationale: {rationale}
-
-"""
-
-QUESTION_TEMPLATE = """## Task: Evaluate the following content, including both the image and the text, and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
-
-<image>
-Content: {content}
-Answer: [/INST]
-"""
-
-
-def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
-    messages = []
-
-    if use_demonstrations:
-
-        if demonstration_selection == "random":
-            samples = random.sample(support_annots, k)
-
-        if demonstration_selection == "tf-idf":
-            similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
-            similar_entry_indices = [entry[0] for entry in similar_entries]
-            samples = [support_annots[index] for index in similar_entry_indices]
-            
-        if demonstration_selection == "bm-25":
-            similar_entries = bm25_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
-            similar_entry_indices = [entry[0] for entry in similar_entries]
-            samples = [support_annots[index] for index in similar_entry_indices]
-
-        formatted_examples = []
-        formatted_examples.append(INTRODUCTION)
-        if demonstration_distribution == "equal":
-            pass
+def replace_image_tokens(qs, mm_use_im_start_end):
+    # qs = qs_orig.copy()
+    image_token_se = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
+    if IMAGE_PLACEHOLDER in qs:
+        if mm_use_im_start_end:
+            qs = re.sub(IMAGE_PLACEHOLDER, image_token_se, qs)
         else:
-            for index, s in enumerate(samples):
-                answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
-                if "rationale" in s.keys():
-                    example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
-                else:
-                    example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], answer=answer)
-                formatted_examples.append(example)
+            qs = re.sub(IMAGE_PLACEHOLDER, DEFAULT_IMAGE_TOKEN, qs)
+    else:
+        if mm_use_im_start_end:
+            qs = image_token_se + "\n" + qs
+        else:
+            qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
 
-    question = QUESTION_TEMPLATE.format(content=content['content'])
-    formatted_examples.append(question)
-
-    required_images = [Image.open(x['img_path']) for x in samples]
-
-    prompt = "".join(formatted_examples)
-    return prompt, required_images
+    return qs
 
 def main(
-    model_id,
-    annotation_filepath,
-    caption_dir,
-    features_dir,
-    image_dir,
-    result_dir,
-    use_demonstration,
-    demonstration_selection,
-    demonstration_distribution,
-    support_filepaths,
-    support_caption_dirs,
-    support_feature_dirs,
-    support_image_dirs,
-    sim_matrix_filepath,
-    debug_mode,
-    shots
-):  
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, image_dir)
-    
+        model_path, 
+        model_base, 
+        annotation_filepath, 
+        caption_dir, 
+        image_dir, 
+        result_dir, 
+        conv_mode, 
+        prompt_format,
+        use_demonstration,
+        demonstration_selection,
+        demonstration_distribution,
+        support_filepaths,
+        support_caption_dirs,
+        support_feature_dirs,
+        support_image_dirs,
+        sim_matrix_filepath,
+        debug_mode,
+        shots
+    ):
+    os.makedirs(result_dir, exist_ok=True)
+
+    # Model
+    disable_torch_init()
+    model_name = get_model_name_from_path(args.model_path)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(
+        model_path, model_base, model_name
+    )
+
+    # Data
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None, image_dir)
     support_annots = []
-    for filepath, support_caption_dir, support_feature_dir, support_image_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, support_image_dirs):
+    for filepath, support_caption_dir, support_feature_dir, support_image_dir in zip(
+        support_filepaths, 
+        support_caption_dirs, 
+        support_feature_dirs,
+        support_image_dirs,
+    ):
         annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, support_image_dir)
         support_annots += annots
-
+    
     with open(sim_matrix_filepath, 'rb') as f:
         sim_matrix = np.load(f)
         labels = np.load(f)
 
-    os.makedirs(result_dir, exist_ok=True)
+    # Conv Mode
+    if "llama-2" in model_name.lower():
+        detected_conv_mode = "llava_llama_2"
+    elif "mistral" in model_name.lower():
+        detected_conv_mode = "mistral_instruct"
+    elif "v1.6-34b" in model_name.lower():
+        detected_conv_mode = "chatml_direct"
+    elif "v1" in model_name.lower():
+        detected_conv_mode = "llava_v1"
+    elif "mpt" in model_name.lower():
+        detected_conv_mode = "mpt"
+    else:
+        detected_conv_mode = "llava_v0"
 
-    model = LlavaNextForConditionalGeneration.from_pretrained(
-        model_id,
-        device_map="cuda",
-        cache_dir="/mnt/data1/aditi/hf/new_cache_dir/"
-    )
-    tokenizer = AutoProcessor.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/")
+    if conv_mode is not None and detected_conv_mode != conv_mode:
+        print(
+            "[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}".format(
+                detected_conv_mode, conv_mode, conv_mode
+            )
+        )
+    else:
+        conv_mode = detected_conv_mode
 
     results = {
-        "model": model_id,
+        "model": model_path,
         "response_text": {},
         "images": [],
         "y_pred": [],
@@ -144,24 +123,21 @@ def main(
         "y_true": [],
         "num_invalids": 0,
     }
-
-    if debug_mode:
-        inference_annots = inference_annots[:5]
     
-    for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
-        img, content = annot['img'], annot['content']
-        id = annot["id"]
-        file_extension = ".json"
-        filename = id + file_extension
+    for idx, annot in tqdm.tqdm(enumerate(inference_annots)):
+        img, img_path, content = annot['img'], annot['img_path'], annot['content_llava']
+        filename = f"{annot['id']}.json"
         result_filepath = os.path.join(result_dir, filename)
 
-        if os.path.exists(result_filepath) and not debug_mode :
+        if os.path.exists(result_filepath) and not debug_mode:
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
-            messages, images = prepare_inputs(
+            # Prepare Conv
+            qs, image_paths = prepare_inputs_llava(
                 annot,
-                idx,
+                idx, 
+                prompt_format,
                 use_demonstration,
                 demonstration_selection,
                 demonstration_distribution,
@@ -170,25 +146,45 @@ def main(
                 labels,
                 shots
             )
-            images.append(Image.open(annot['img_path'])) ## append the inference image
-            
-            
-            inputs = tokenizer(text=messages, images=images, return_tensors="pt").to(model.device)
-            
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=10,
-                do_sample=False,
-                num_beams=1
+
+            conv = conv_templates[conv_mode].copy()
+            conv.append_message(conv.roles[0], qs)
+            conv.append_message(conv.roles[1], None)
+            prompt = conv.get_prompt()
+
+            # Parse Images
+            images = load_images(image_paths)
+            image_sizes = [x.size for x in images]
+            images_tensor = process_images(
+                images,
+                image_processor,
+                model.config
             )
-            input_ids = inputs["input_ids"]
-            response = outputs[0][input_ids.shape[-1]:]
-            response_text = tokenizer.decode(response, skip_special_tokens=True)
+            images_tensor = [x.to(model.device, dtype=torch.float16) for x in images_tensor]
+
+            input_ids = (
+                tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
+                .unsqueeze(0)
+                .cuda()
+            )
+            
+            with torch.inference_mode():
+                output_ids = model.generate(
+                    input_ids,
+                    images=images_tensor,
+                    image_sizes=image_sizes,
+                    do_sample=False,
+                    num_beams=1,
+                    max_new_tokens=32,
+                    use_cache=True,
+                )
+
+            outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
             
             output_obj = {
                 "img": img,
-                "model": model_id,
-                "response_text": response_text,
+                "model": model_path,
+                "response_text": outputs,
                 "content": content
             }
 
@@ -198,6 +194,7 @@ def main(
 
         results["response_text"][output_obj['img']] = output_obj['response_text']
 
+
     # Answer Processing
     for annot in tqdm.tqdm(inference_annots):
         img, label = annot['img'], annot['label']
@@ -205,6 +202,7 @@ def main(
         results["y_true"].append(label)
 
         response_text = results["response_text"][img].lower()
+        response_text = response_text.replace("answer:", "").strip()
 
         pred = -1
         if response_text.startswith("not hateful"):
@@ -232,19 +230,19 @@ def main(
     print(f"Acc Score: {acc:04}")
     print(f"Num. Invalids: {results['num_invalids']}")
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("CMTL RAG Baseline")
-    parser.add_argument("--model_id", type=str, required=True)
+    parser.add_argument("--model_path", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model_base", type=str, default=None)
+    parser.add_argument("--conv_mode", type=str, default=None)
     parser.add_argument("--debug_mode", type=bool, default=False)
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
-    parser.add_argument("--feature_dir", type=str, default=None)
     parser.add_argument("--image_dir", type=str, default=None)
-
     parser.add_argument("--result_dir", type=str, required=True)
 
     parser.add_argument("--use_demonstrations", action="store_true")
+    parser.add_argument("--prompt_format", choices=["system_prompt", "single_prompt", "multi_turn_prompt"])
     parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
     parser.add_argument("--demonstration_distribution", choices=["equal", "top-k"])
     parser.add_argument("--support_filepaths", nargs='+')
@@ -253,16 +251,18 @@ if __name__ == "__main__":
     parser.add_argument("--support_image_dirs", nargs='+')
     parser.add_argument("--sim_matrix_filepath", type=str, required=True)
     parser.add_argument("--shots", type=int, required=True)
-
+    
     args = parser.parse_args()
 
     main(
-        args.model_id,
+        args.model_path,
+        args.model_base,
         args.annotation_filepath,
         args.caption_dir,
-        args.feature_dir,
         args.image_dir,
         args.result_dir,
+        args.conv_mode,
+        args.prompt_format,
         args.use_demonstrations,
         args.demonstration_selection,
         args.demonstration_distribution,

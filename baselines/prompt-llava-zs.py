@@ -1,41 +1,87 @@
-
+import re
 import tqdm
 import os
+import torch
 import json
 import argparse
 import pandas as pd
 from PIL import Image
-from transformers import AutoTokenizer, AutoProcessor, LlavaNextForConditionalGeneration
 from sklearn.metrics import f1_score, accuracy_score
-from utils import load_inference_dataset, load_support_dataset
+from utils import load_inference_dataset, load_support_dataset, load_images
+from prompt_utils import ZS_SINGLE_TURN_PROMPT
 
-INFERENCE_PROMPT_TEMPLATE = """[INST] Hate Speech Prediction Template
-Definition of Hate Speech:
-Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
+from llava.constants import (
+    IMAGE_TOKEN_INDEX,
+    DEFAULT_IMAGE_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IM_END_TOKEN,
+    IMAGE_PLACEHOLDER,
+)
+from llava.conversation import conv_templates, SeparatorStyle
+from llava.model.builder import load_pretrained_model
+from llava.utils import disable_torch_init
+from llava.mm_utils import (
+    process_images,
+    tokenizer_image_token,
+    get_model_name_from_path,
+)
 
-Instruction:
-Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
+# Reference: https://github.dev/haotian-liu/LLaVA/pull/1502/files
 
-<image>
-Content:
-{content}
-Answer: [/INST]
-"""
+def replace_image_tokens(qs, mm_use_im_start_end):
+    # qs = qs_orig.copy()
+    image_token_se = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
+    print(IMAGE_PLACEHOLDER, IMAGE_PLACEHOLDER in qs)
+    if IMAGE_PLACEHOLDER in qs:
+        if mm_use_im_start_end:
+            qs = re.sub(IMAGE_PLACEHOLDER, image_token_se, qs)
+        else:
+            qs = re.sub(IMAGE_PLACEHOLDER, DEFAULT_IMAGE_TOKEN, qs)
+    else:
+        if mm_use_im_start_end:
+            qs = image_token_se + "\n" + qs
+        else:
+            qs = DEFAULT_IMAGE_TOKEN + "\n" + qs
 
-def main(model_id, annotation_filepath, caption_dir, image_dir, result_dir, debug_mode):
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None, image_dir)
-    
-    os.makedirs(result_dir, exist_ok=True)
+    return qs
 
-    model = LlavaNextForConditionalGeneration.from_pretrained(
-        model_id,
-        cache_dir="/mnt/data1/aditi/hf/new_cache_dir/",
-        device_map="cuda"
+def main(model_path, model_base, annotation_filepath, caption_dir, image_dir, result_dir, conv_mode, debug_mode):
+    # Model
+    disable_torch_init()
+    model_name = get_model_name_from_path(args.model_path)
+    tokenizer, model, image_processor, context_len = load_pretrained_model(
+        model_path, model_base, model_name
     )
-    tokenizer = AutoProcessor.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/")
+
+    # Data
+    print(image_dir)
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None, image_dir)
+
+    # Conv Mode
+    if "llama-2" in model_name.lower():
+        detected_conv_mode = "llava_llama_2"
+    elif "mistral" in model_name.lower():
+        detected_conv_mode = "mistral_instruct"
+    elif "v1.6-34b" in model_name.lower():
+        detected_conv_mode = "chatml_direct"
+    elif "v1" in model_name.lower():
+        detected_conv_mode = "llava_v1"
+    elif "mpt" in model_name.lower():
+        detected_conv_mode = "mpt"
+    else:
+        detected_conv_mode = "llava_v0"
+
+    if conv_mode is not None and detected_conv_mode != conv_mode:
+        print(
+            "[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}".format(
+                detected_conv_mode, conv_mode, conv_mode
+            )
+        )
+    else:
+        conv_mode = detected_conv_mode
 
     results = {
-        "model": model_id,
+        "model": model_path,
         "response_text": {},
         "images": [],
         "y_pred": [],
@@ -43,42 +89,62 @@ def main(model_id, annotation_filepath, caption_dir, image_dir, result_dir, debu
         "y_true": [],
         "num_invalids": 0,
     }
-
-    if debug_mode:
-        inference_annots = inference_annots[:5]
-
-    for annot in tqdm.tqdm(inference_annots):
-        img, content = annot['img'], annot['content']
-        id = annot["id"]
-        file_extension = ".json"
-        filename = id + file_extension
+    
+    for idx, annot in tqdm.tqdm(enumerate(inference_annots)):
+        img, img_path, content = annot['img'], annot['img_path'], annot['content_llava']
+        filename = f"{annot['id']}.json"
         result_filepath = os.path.join(result_dir, filename)
 
-        if os.path.exists(result_filepath) and not debug_mode :
+        if os.path.exists(result_filepath) and not debug_mode:
             with open(result_filepath) as f:
                 output_obj = json.load(f)
-        else:
-            content = INFERENCE_PROMPT_TEMPLATE.format(content=content)
-            input_ids = tokenizer(text=content, return_tensors="pt").to(model.device)["input_ids"]
 
-            image = Image.open(annot['img_path'])
-            inputs = tokenizer(text=content, images=(image), return_tensors="pt").to(model.device)
-            
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=10,
-                do_sample=False,
-                num_beams=1
+            output_obj['img'] = os.path.basename(output_obj['img'])
+
+            with open(result_filepath, "w+") as f:
+                json.dump(output_obj, f)
+        else:
+            # Prepare Conv
+            qs = ZS_SINGLE_TURN_PROMPT.format(content=content)
+            qs = replace_image_tokens(qs, model.config.mm_use_im_start_end)
+
+            conv = conv_templates[conv_mode].copy()
+            conv.append_message(conv.roles[0], qs)
+            conv.append_message(conv.roles[1], None)
+            prompt = conv.get_prompt()
+
+            # Parse Images
+            images = load_images([img_path])
+            image_sizes = [x.size for x in images]
+            images_tensor = process_images(
+                images,
+                image_processor,
+                model.config
+            ).to(model.device, dtype=torch.float16)
+
+            input_ids = (
+                tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
+                .unsqueeze(0)
+                .cuda()
             )
-            input_ids = inputs["input_ids"]
-            response = outputs[0][input_ids.shape[-1]:]
-            response_text = tokenizer.decode(response, skip_special_tokens=True)
-            response_text= response_text.replace('\n', '')
+            
+            with torch.inference_mode():
+                output_ids = model.generate(
+                    input_ids,
+                    images=images_tensor,
+                    image_sizes=image_sizes,
+                    do_sample=False,
+                    num_beams=1,
+                    max_new_tokens=32,
+                    use_cache=True,
+                )
+
+            outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
             
             output_obj = {
                 "img": img,
-                "model": model_id,
-                "response_text": response_text,
+                "model": model_path,
+                "response_text": outputs,
                 "content": content
             }
 
@@ -88,6 +154,8 @@ def main(model_id, annotation_filepath, caption_dir, image_dir, result_dir, debu
 
         results["response_text"][output_obj['img']] = output_obj['response_text']
 
+    # print("YO")
+    # print(results)
     # Answer Processing
     for annot in tqdm.tqdm(inference_annots):
         img, label = annot['img'], annot['label']
@@ -95,6 +163,7 @@ def main(model_id, annotation_filepath, caption_dir, image_dir, result_dir, debu
         results["y_true"].append(label)
 
         response_text = results["response_text"][img].lower()
+        response_text = response_text.replace("answer:", "").strip()
 
         pred = -1
         if response_text.startswith("not hateful"):
@@ -122,10 +191,11 @@ def main(model_id, annotation_filepath, caption_dir, image_dir, result_dir, debu
     print(f"Acc Score: {acc:04}")
     print(f"Num. Invalids: {results['num_invalids']}")
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("CMTL RAG Baseline")
-    parser.add_argument("--model_id", type=str, required=True)
+    parser.add_argument("--model_path", type=str, default="facebook/opt-350m")
+    parser.add_argument("--model_base", type=str, default=None)
+    parser.add_argument("--conv_mode", type=str, default=None)
     parser.add_argument("--debug_mode", type=bool, default=False)
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
@@ -135,11 +205,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(
-        args.model_id,
+        args.model_path,
+        args.model_base,
         args.annotation_filepath,
         args.caption_dir,
         args.image_dir,
         args.result_dir,
+        args.conv_mode,
         args.debug_mode
     )
-
