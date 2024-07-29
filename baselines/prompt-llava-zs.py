@@ -4,33 +4,35 @@ import os
 import json
 import argparse
 import pandas as pd
-
-from transformers import AutoTokenizer, AutoModelForCausalLM, LlavaNextForConditionalGeneration
+from PIL import Image
+from transformers import AutoTokenizer, AutoProcessor, LlavaNextForConditionalGeneration
 from sklearn.metrics import f1_score, accuracy_score
 from utils import load_inference_dataset, load_support_dataset
 
-INFERENCE_PROMPT_TEMPLATE = """[INST] ## Definition of Hate Speech:
+INFERENCE_PROMPT_TEMPLATE = """[INST] Hate Speech Prediction Template
+Definition of Hate Speech:
 Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
 Instruction:
 Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
 
+<image>
 Content:
 {content}
 Answer: [/INST]
 """
 
-def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
+def main(model_id, annotation_filepath, caption_dir, image_dir, result_dir, debug_mode):
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None, image_dir)
     
     os.makedirs(result_dir, exist_ok=True)
 
     model = LlavaNextForConditionalGeneration.from_pretrained(
         model_id,
-        device_map="auto",
-        cache_dir="/mnt/data1/aditi/hf/new_cache_dir/"
+        cache_dir="/mnt/data1/aditi/hf/new_cache_dir/",
+        device_map="cuda"
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/")
+    tokenizer = AutoProcessor.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/")
 
     results = {
         "model": model_id,
@@ -59,13 +61,16 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
             content = INFERENCE_PROMPT_TEMPLATE.format(content=content)
             input_ids = tokenizer(text=content, return_tensors="pt").to(model.device)["input_ids"]
 
+            image = Image.open(annot['img_path'])
+            inputs = tokenizer(text=content, images=(image), return_tensors="pt").to(model.device)
+            
             outputs = model.generate(
-                input_ids,
+                **inputs,
                 max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )
-
+            input_ids = inputs["input_ids"]
             response = outputs[0][input_ids.shape[-1]:]
             response_text = tokenizer.decode(response, skip_special_tokens=True)
             response_text= response_text.replace('\n', '')
@@ -124,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug_mode", type=bool, default=False)
     parser.add_argument("--annotation_filepath", type=str, required=True)
     parser.add_argument("--caption_dir", type=str, default=None)
+    parser.add_argument("--image_dir", type=str, default=None)
     parser.add_argument("--result_dir", type=str, required=True)
     
     args = parser.parse_args()
@@ -132,6 +138,7 @@ if __name__ == "__main__":
         args.model_id,
         args.annotation_filepath,
         args.caption_dir,
+        args.image_dir,
         args.result_dir,
         args.debug_mode
     )

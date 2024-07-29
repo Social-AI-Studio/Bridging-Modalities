@@ -38,7 +38,7 @@ def load_features(features_dir):
     return data_dict
 
 
-def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
+def load_inference_dataset(annotation_filepath, caption_dir, features_dir, image_dir):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
@@ -54,6 +54,8 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
         if "fhm" in annotation_filepath:
             obj["id"] = f"{annot['id']:05}"
             obj["img"] = os.path.basename(annot['img'])
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['text']
             obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
 
@@ -75,6 +77,8 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
         if "mami" in annotation_filepath:
             obj["id"] = annot["file_name"][:-4]
             obj["img"] = annot['file_name']
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['Text Transcription']
             obj["label"] = annot['misogynous']
 
@@ -94,7 +98,7 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
 
     return processed_annotations
 
-def load_support_dataset(annotation_filepath, caption_dir, features_dir):
+def load_support_dataset(annotation_filepath, caption_dir, features_dir, image_dir):
     annotations = []
     with open(annotation_filepath) as f:
         for line in f:
@@ -125,6 +129,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
         if "mmhs" in annotation_filepath.lower():
             obj["id"] = annot["id"]
             obj["img"] = f"{annot['id']}.jpg"
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['tweet_text']
             obj["label"] = 0 if annot['label'] == "not_hateful" else 1
 
@@ -143,6 +149,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
         if "alignment" in annotation_filepath.lower():
             obj["id"] = f"{annot['id']:05}"
             obj["img"] = os.path.basename(annot['img'])
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['text']
             obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
 
@@ -161,6 +169,8 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
         if "fhm" in annotation_filepath.lower():
             obj["id"] = f"{annot['id']:05}"
             obj["img"] = os.path.basename(annot['img'])
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['text']
             obj["label"] = 1 if annot['gold_hate'][0] == 'hateful' else 0
 
@@ -178,7 +188,9 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             
         if "misogynistic_meme" in annotation_filepath.lower():
             obj["id"] = annot["id"]
-            obj["img"] = annot['img']
+            obj["img"] = os.path.basename(annot['img'])
+            if image_dir is not None:
+                obj['img_path'] = os.path.join(image_dir, obj['img'])
             obj["text"] = annot['text']
             obj["label"] = annot['label']
 
