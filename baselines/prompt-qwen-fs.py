@@ -22,36 +22,42 @@ from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
 # from clip_wrapper import get_top_k_similar as clip_sampler
 # from sift_wrapper import get_top_k_similar as sift_sampler
 
+from prompt_utils import (
+    SYSTEM_PROMPT,
+    INTRODUCTION,
+    INTRODUCTION_WITHOUT_INSTRUCTIONS,
+    EXAMPLE_TEMPLATE_WITH_RATIONALE,
+    QUESTION_TEMPLATE,
+    ANSWER_MULTI_TURN_TEMPLATE,
+    QUESTION_MULTI_TURN_TEMPLATE
+)
 
-INTRODUCTION = """## Definition of Hate Speech:
-Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
 
-## Instruction
-Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
+def prepare_inputs(content, content_idx, prompt_format, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
+    if prompt_format == "system_prompt_demonstrations":
+        prepare_fn = prepare_inputs_system_demonstrations
+    elif prompt_format == "system_prompt":
+        prepare_fn = prepare_inputs_system
+    elif prompt_format == "single_prompt":
+        prepare_fn = prepare_inputs
+    elif prompt_format == "multi_turn_prompt":
+        prepare_fn = prepare_inputs_system_conversational
+    else:
+        raise NotImplementedError(f"prompt format '{prompt_format}' not implemented.")
+    
+    return prepare_fn(
+        content,
+        content_idx, 
+        use_demonstrations,
+        demonstration_selection,
+        demonstration_distribution,
+        support_annots,
+        sim_matrix,
+        labels,
+        k
+    )
 
-## Demonstration Examples
-
-"""
-
-EXAMPLE_TEMPLATE = """### Example {index}
-Content: {content}
-Answer: {answer}
-
-"""
-
-EXAMPLE_TEMPLATE_WITH_RATIONALE = """### Example {index}
-Content: {content}
-Answer: {answer}
-Rationale: {rationale}
-
-"""
-
-QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
-
-Content: {content}
-Answer: """
-
-def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
+def prepare_inputs_single_prompt(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
     messages = []
 
     if use_demonstrations:
@@ -89,17 +95,123 @@ def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selec
         else:
             for index, s in enumerate(samples):
                 answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
-                if "rationale" in s.keys():
-                    example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
-                else:
-                    example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], answer=answer)
+                example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
                 formatted_examples.append(example)
 
     question = QUESTION_TEMPLATE.format(content=content['content'])
     formatted_examples.append(question)
+    
 
     joined_examples = "".join(formatted_examples)
     prompt = [{"role": "user", "content": joined_examples}]
+
+    
+    for obj in prompt:
+        print("### " + obj['role'].upper())    
+        print(obj['content'])
+    exit()
+    return prompt
+
+def prepare_inputs_system(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
+    if use_demonstrations:
+        if demonstration_selection == "tf-idf":
+            similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
+            similar_entry_indices = [entry[0] for entry in similar_entries]
+            samples = [support_annots[index] for index in similar_entry_indices]
+        else:
+            raise NotImplementedError(f"demonstration selection '{demonstration_selection}' not found")
+
+        msg = [INTRODUCTION_WITHOUT_INSTRUCTIONS]
+        if demonstration_distribution == "equal":
+            pass
+        else:
+            for index, s in enumerate(samples):
+                answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
+                example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(
+                    index=index+1, 
+                    content=s['content'], 
+                    rationale=s['rationale'], 
+                    answer=answer
+                )
+                msg.append(example)
+
+    question = QUESTION_TEMPLATE.format(content=content['content'])
+    msg.append(question)
+    
+
+    joined_examples = "\n".join(msg)
+    prompt = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": joined_examples}
+    ]
+    
+    return prompt
+
+def prepare_inputs_system_conversational(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
+    prompt_conv = []
+    if use_demonstrations:
+        if demonstration_selection == "tf-idf":
+            similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
+            similar_entry_indices = [entry[0] for entry in similar_entries]
+            samples = [support_annots[index] for index in similar_entry_indices]
+        else:
+            raise NotImplementedError(f"demonstration selection '{demonstration_selection}' not found")
+
+        if demonstration_distribution == "equal":
+            pass
+        else:
+            for index, s in enumerate(samples):
+                answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
+                qn = QUESTION_MULTI_TURN_TEMPLATE.format(content=s['content'])
+                ans = ANSWER_MULTI_TURN_TEMPLATE.format(rationale=s['rationale'], answer=answer)
+                prompt_conv.append({"role": "user", "content": qn})
+                prompt_conv.append({"role": "assistant", "content": ans})
+
+    qn = QUESTION_MULTI_TURN_TEMPLATE.format(content=content['content'])
+    prompt_conv.append({"role": "user", "content": qn})
+    
+    prompt = [
+        {"role": "system", "content": SYSTEM_PROMPT}
+    ] + prompt_conv 
+
+    
+    return prompt
+
+def prepare_inputs_system_demonstrations(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
+    system_prompt = [SYSTEM_PROMPT, INTRODUCTION_WITHOUT_INSTRUCTIONS]
+    prompt_conv = []
+    if use_demonstrations:
+        if demonstration_selection == "tf-idf":
+            similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
+            similar_entry_indices = [entry[0] for entry in similar_entries]
+            samples = [support_annots[index] for index in similar_entry_indices]
+        else:
+            raise NotImplementedError(f"demonstration selection '{demonstration_selection}' not found")
+
+        for index, s in enumerate(samples):
+            answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
+            example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(
+                index=index+1, 
+                content=s['content'], 
+                rationale=s['rationale'], 
+                answer=answer
+            )
+            system_prompt.append(example)
+
+    qn = QUESTION_MULTI_TURN_TEMPLATE.format(content=content['content'])
+    
+    system_prompt = "\n".join(system_prompt)
+    prompt_conv.append({"role": "user", "content": qn})
+    
+    prompt = [
+        {"role": "system", "content": system_prompt.strip()}
+    ] + prompt_conv 
+
+    
+    # for obj in prompt:
+    #     print("### " + obj['role'].upper())    
+    #     print(obj['content'])
+    # exit()
     return prompt
 
 def main(
@@ -108,6 +220,7 @@ def main(
     caption_dir,
     features_dir,
     result_dir,
+    prompt_format,
     use_demonstration,
     demonstration_selection,
     demonstration_distribution,
@@ -165,6 +278,7 @@ def main(
             messages = prepare_inputs(
                 annot,
                 idx,
+                prompt_format,
                 use_demonstration,
                 demonstration_selection,
                 demonstration_distribution,
@@ -214,6 +328,7 @@ def main(
         results["y_true"].append(label)
 
         response_text = results["response_text"][img].lower()
+        response_text = response_text.replace("answer:", "").strip()
 
         pred = -1
         if response_text.startswith("not hateful"):
@@ -253,6 +368,7 @@ if __name__ == "__main__":
     parser.add_argument("--result_dir", type=str, required=True)
 
     parser.add_argument("--use_demonstrations", action="store_true")
+    parser.add_argument("--prompt_format", choices=["system_prompt", "system_prompt_demonstrations", "single_prompt", "multi_turn_prompt"])
     parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
     parser.add_argument("--demonstration_distribution", choices=["equal", "top-k"])
     parser.add_argument("--support_filepaths", nargs='+')
@@ -269,6 +385,7 @@ if __name__ == "__main__":
         args.caption_dir,
         args.feature_dir,
         args.result_dir,
+        args.prompt_format,
         args.use_demonstrations,
         args.demonstration_selection,
         args.demonstration_distribution,
