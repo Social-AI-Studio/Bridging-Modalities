@@ -86,7 +86,7 @@ def load_inference_dataset(annotation_filepath, caption_dir, features_dir):
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
 
-            obj["target_categories_mapped"] = [1]
+            obj["target_categories_mapped"] = [1] if annot['misogynous'] else [0]
 
             obj["multimodal_record"] = True
 
@@ -119,7 +119,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             obj["content_text"] = f"{obj['text']}"
             obj["content_text_caption"] = f"{obj['text']}"
 
-            obj["rationale"] = annot["mistral_instruct_statement"]
+            obj["rationale"] = annot["mistral_instruct_statement"].replace("\n", "")
             obj["target_categories_mapped"] = annot["target_categories_mapped"]
             
         if "mmhs" in annotation_filepath.lower():
@@ -154,7 +154,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
 
-            obj["rationale"] = annot['mistral_instruct_statement']
+            obj["rationale"] = annot["mistral_instruct_statement"].replace("\n", "")
             obj["target_categories_mapped"] = annot["target_categories_mapped"]
             obj["multimodal_record"] = True
             
@@ -172,7 +172,7 @@ def load_support_dataset(annotation_filepath, caption_dir, features_dir):
             if features_dir is not None and features_dir != "":
                 obj["features"] = features[obj["id"]]
 
-            obj["rationale"] = annot['mistral_instruct_statement']
+            obj["rationale"] = annot["mistral_instruct_statement"].replace("\n", "")
             obj["target_categories_mapped"] = annot["target_categories_mapped"]
             obj["multimodal_record"] = True
             
