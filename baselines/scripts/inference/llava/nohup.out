@@ -1,0 +1,9 @@
+4_shots
+/home/mshee/anaconda3/envs/llava-1.6/lib/python3.10/site-packages/transformers/utils/hub.py:124: FutureWarning: Using `PYTORCH_TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/mnt/data1/mshee/CMTL-RAG/baselines/scripts/inference/llava/../../../prompt-llava-fs.py", line 13, in <module>
+    from llava.constants import (
+  File "/mnt/data1/mshee/LLaVA/llava/__init__.py", line 1, in <module>
+    from .model import LlavaLlamaForCausalLM
+ImportError: cannot import name 'LlavaLlamaForCausalLM' from 'llava.model' (/mnt/data1/mshee/LLaVA/llava/model/__init__.py)

@@ -19,40 +19,40 @@ do
     # fhm
     # tfidf
 
-    python3 -u ../../../prompt-llava-fs.py \
-        --model_path $MODEL \
-        --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-        --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
-        --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/memes/fhm_finegrained/tfidf \
-        --image_dir /mnt/data1/datasets/memes/fhm/images/img/ \
-        --use_demonstrations \
-        --prompt_format "single_prompt" \
-        --demonstration_selection "tf-idf" \
-        --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
-        --support_feature_dirs "" \
-        --support_image_dirs None \
-        --sim_matrix_filepath $FHM_TFIDF \
-        --shots $EXP > ../../../lh-logs/$EXP_NAME/$1/$MODEL/fhm-tfidf.log
+    # python3 -u ../../../prompt-llava-fs.py \
+    #     --model_path $MODEL \
+    #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
+    #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
+    #     --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/memes/fhm_finegrained/tfidf \
+    #     --image_dir /mnt/data1/datasets/memes/fhm/images/img/ \
+    #     --use_demonstrations \
+    #     --prompt_format "single_prompt" \
+    #     --demonstration_selection "tf-idf" \
+    #     --demonstration_distribution "top-k" \
+    #     --support_filepaths $LATENT_HATRED \
+    #     --support_caption_dirs "" \
+    #     --support_feature_dirs "" \
+    #     --support_image_dirs None \
+    #     --sim_matrix_filepath $FHM_TFIDF \
+    #     --shots $EXP > ../../../lh-logs/$EXP_NAME/$1/$MODEL/fhm-tfidf.log
 
-    # bm25
-    python3 -u ../../../prompt-llava-fs.py \
-        --model_path $MODEL \
-        --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-        --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
-        --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/memes/fhm_finegrained/bm25 \
-        --image_dir /mnt/data1/datasets/memes/fhm/images/img/ \
-        --use_demonstrations \
-        --prompt_format "single_prompt" \
-        --demonstration_selection "bm-25" \
-        --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
-        --support_feature_dirs "" \
-        --support_image_dirs None \
-        --sim_matrix_filepath $FHM_BM25 \
-        --shots $EXP > ../../../lh-logs/$EXP_NAME/$1/$MODEL/fhm-bm25.log
+    # # bm25
+    # python3 -u ../../../prompt-llava-fs.py \
+    #     --model_path $MODEL \
+    #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
+    #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
+    #     --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/memes/fhm_finegrained/bm25 \
+    #     --image_dir /mnt/data1/datasets/memes/fhm/images/img/ \
+    #     --use_demonstrations \
+    #     --prompt_format "single_prompt" \
+    #     --demonstration_selection "bm-25" \
+    #     --demonstration_distribution "top-k" \
+    #     --support_filepaths $LATENT_HATRED \
+    #     --support_caption_dirs "" \
+    #     --support_feature_dirs "" \
+    #     --support_image_dirs None \
+    #     --sim_matrix_filepath $FHM_BM25 \
+    #     --shots $EXP > ../../../lh-logs/$EXP_NAME/$1/$MODEL/fhm-bm25.log
 
     # mistral-mami
     # random

@@ -10,24 +10,24 @@ do
     EXP_NAME=${EXP}_shots
     echo $EXP_NAME
     # fhm
-    # random
+    # # random
 
-    python3 -u ../../../prompt-llava-fs.py \
-        --model_path $MODEL \
-        --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
-        --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
-        --result_dir ../../../../lh-results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
-        --image_dir /mnt/data1/datasets/memes/fhm/images/img/ \
-        --use_demonstrations \
-        --prompt_format "single_prompt" \
-        --demonstration_selection "random" \
-        --demonstration_distribution "top-k" \
-        --support_filepaths $LATENT_HATRED \
-        --support_caption_dirs "" \
-        --support_feature_dirs "" \
-        --support_image_dirs None \
-        --sim_matrix_filepath $FHM_RANDOM \
-        --shots $EXP > ../../../lh-logs/$EXP_NAME/random/$MODEL/fhm-random.log
+    # python3 -u ../../../prompt-llava-fs.py \
+    #     --model_path $MODEL \
+    #     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
+    #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
+    #     --result_dir ../../../../lh-results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
+    #     --image_dir /mnt/data1/datasets/memes/fhm/images/img/ \
+    #     --use_demonstrations \
+    #     --prompt_format "single_prompt" \
+    #     --demonstration_selection "random" \
+    #     --demonstration_distribution "top-k" \
+    #     --support_filepaths $LATENT_HATRED \
+    #     --support_caption_dirs "" \
+    #     --support_feature_dirs "" \
+    #     --support_image_dirs None \
+    #     --sim_matrix_filepath $FHM_RANDOM \
+    #     --shots $EXP > ../../../lh-logs/$EXP_NAME/random/$MODEL/fhm-random.log
 
     # mistral-mami
     # # random
