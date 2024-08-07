@@ -236,7 +236,7 @@ if __name__ == "__main__":
     parser.add_argument("--result_dir", type=str, required=True)
 
     parser.add_argument("--use_demonstrations", action="store_true")
-    parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
+    parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25"])
     parser.add_argument("--demonstration_distribution", choices=["equal", "top-k"])
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')

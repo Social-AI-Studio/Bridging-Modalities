@@ -14,13 +14,9 @@ from utils import load_inference_dataset, load_support_dataset
 
 # from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 # from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-# from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
-# from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
 from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-# from clip_wrapper import get_top_k_similar as clip_sampler
-# from sift_wrapper import get_top_k_similar as sift_sampler
 
 from prompt_utils import (
     SYSTEM_PROMPT,
@@ -75,18 +71,6 @@ def prepare_inputs_single_prompt(content, content_idx, use_demonstrations, demon
             similar_entries = bm25_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
             similar_entry_indices = [entry[0] for entry in similar_entries]
             samples = [support_annots[index] for index in similar_entry_indices]
-
-        if demonstration_selection == "clip":
-            corpus_annotations = [annotation for annotation in support_annots if 'multimodal_record' in annotation]
-            similar_entries = clip_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
-            similar_entry_indices = [entry[0] for entry in similar_entries]
-            samples = [corpus_annotations[index] for index in similar_entry_indices]
-
-        if demonstration_selection == "sift":
-            corpus_annotations = [annotation for annotation in support_annots if 'multimodal_record' in annotation]
-            similar_entries = sift_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
-            similar_entry_indices = [entry[0] for entry in similar_entries]
-            samples = [corpus_annotations[index] for index in similar_entry_indices]
 
         formatted_examples = []
         formatted_examples.append(INTRODUCTION)
@@ -369,7 +353,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--use_demonstrations", action="store_true")
     parser.add_argument("--prompt_format", choices=["system_prompt", "system_prompt_demonstrations", "single_prompt", "multi_turn_prompt"])
-    parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
+    parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25"])
     parser.add_argument("--demonstration_distribution", choices=["equal", "top-k"])
     parser.add_argument("--support_filepaths", nargs='+')
     parser.add_argument("--support_caption_dirs", nargs='+')
