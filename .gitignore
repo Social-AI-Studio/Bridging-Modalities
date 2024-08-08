@@ -7,7 +7,6 @@ baselines/utils.py
 matching/utils.py
 
 *.log
-llama
 results
 baselines/llama
 baselines/bm25_wrapper.py

@@ -1,40 +1,26 @@
-
+import torch
 import tqdm
 import os
 import json
 import argparse
 import pandas as pd
-import torch
-import transformers
+
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sklearn.metrics import f1_score, accuracy_score
-from utils import load_inference_dataset, load_support_dataset
+from utils import load_inference_dataset
 
-INFERENCE_PROMPT_TEMPLATE = """Hate Speech Prediction Template
-Definition of Hate Speech:
-Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
-
-Instruction:
-Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
-
-Content:
-{content}
-Answer:
-"""
+from prompt_utils import ZS_SINGLE_TURN_PROMPT
 
 def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None, None)
     
     os.makedirs(result_dir, exist_ok=True)
 
-    model = AutoModelForCausalLM.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/", device_map="cuda")
-    tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/", device_map="cuda")
-
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        device_map="cuda",
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
     )
 
     results = {
@@ -60,18 +46,26 @@ def main(model_id, annotation_filepath, caption_dir, result_dir, debug_mode):
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
-            content = INFERENCE_PROMPT_TEMPLATE.format(content=content)
+            content = ZS_SINGLE_TURN_PROMPT.format(content=content)
             messages = [
                 {"role": "user", "content": f"{content}"},
             ]
 
-            outputs = pipeline(
+            input_ids = tokenizer.apply_chat_template(
                 messages,
+                add_generation_prompt=True,
+                return_tensors="pt"
+            ).to(model.device)
+
+            outputs = model.generate(
+                input_ids,
                 max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )
-            response_text=outputs[0]["generated_text"][-1]['content']
+
+            response = outputs[0][input_ids.shape[-1]:]
+            response_text = tokenizer.decode(response, skip_special_tokens=True)
 
             output_obj = {
                 "img": img,

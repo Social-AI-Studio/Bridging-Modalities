@@ -1,4 +1,4 @@
-
+import torch
 import tqdm
 import os
 import json
@@ -6,90 +6,33 @@ import argparse
 import pandas as pd
 import random
 import numpy as np
-import transformers
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from sklearn.metrics import f1_score, accuracy_score
 from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-# from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
+# from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
 
-from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from bm25_wrapper import get_top_k_similar as bm25_sampler
+from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from matching.clip_wrapper import get_top_k_similar as clip_sampler
+# from sift_wrapper import get_top_k_similar as sift_sampler
 
+from prompt_utils import (
+    SYSTEM_PROMPT,
+    INTRODUCTION,
+    INTRODUCTION_WITHOUT_INSTRUCTIONS,
+    EXAMPLE_TEMPLATE_WITH_RATIONALE,
+    QUESTION_TEMPLATE,
+    ANSWER_MULTI_TURN_TEMPLATE,
+    QUESTION_MULTI_TURN_TEMPLATE
+)
 
-INTRODUCTION = """## Definition of Hate Speech:
-Hate speech is any communication that belittles, discriminates against, or incites violence against individuals or groups based on attributes such as race, religion, ethnicity, gender, sexual orientation, disability, or other distinguishing characteristics. This includes, but is not limited to, slurs, threats, dehumanizing language, and advocating for exclusion or violence against these individuals or groups.
-
-## Instruction
-Evaluate the content using the definition of hate speech to determine if it is considered as hateful. Respond with either "Hateful" or "Not Hateful."
-
-## Demonstration Examples
-
-"""
-
-EXAMPLE_TEMPLATE = """### Example {index}
-Content: {content}
-Answer: {answer}
-
-"""
-
-EXAMPLE_TEMPLATE_WITH_RATIONALE = """### Example {index}
-Content: {content}
-Answer: {answer}
-Rationale: {rationale}
-
-"""
-
-QUESTION_TEMPLATE = """## Task: Evaluate the following content and respond with either "Hateful" or "Not Hateful" based on the provided definition of hate speech.
-
-Content: {content}
-Answer: """
-
-
-
-def prepare_inputs(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
-    messages = []
-
-    if use_demonstrations:
-
-        if demonstration_selection == "random":
-            similar_entry_indices = sim_matrix[content_idx][:k]
-            samples = [support_annots[index] for index in similar_entry_indices]
-
-        if demonstration_selection == "tf-idf":
-            similar_entries = tfidf_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
-            similar_entry_indices = [entry[0] for entry in similar_entries]
-            samples = [support_annots[index] for index in similar_entry_indices]
-            
-        if demonstration_selection == "bm-25":
-            similar_entries = bm25_sampler(sim_matrix[content_idx], labels, k, selection=demonstration_distribution)
-            similar_entry_indices = [entry[0] for entry in similar_entries]
-            samples = [support_annots[index] for index in similar_entry_indices]
-
-
-        formatted_examples = []
-        formatted_examples.append(INTRODUCTION)
-        if demonstration_distribution == "equal":
-            pass
-        else:
-            for index, s in enumerate(samples):
-                answer = "Hateful" if s['label'] == "hateful" or s['label'] == 1 else "Not Hateful"
-                if "rationale" in s.keys():
-                    example = EXAMPLE_TEMPLATE_WITH_RATIONALE.format(index=index+1, content=s['content'], rationale=s['rationale'], answer=answer)
-                else:
-                    example = EXAMPLE_TEMPLATE.format(index=index+1, content=s['content'], answer=answer)
-                formatted_examples.append(example)
-
-    question = QUESTION_TEMPLATE.format(content=content['content'])
-    formatted_examples.append(question)
-    
-
-    joined_examples = "".join(formatted_examples)
-    prompt = [{"role": "user", "content": joined_examples}]
-    return prompt
+from fs_utils import prepare_inputs
 
 def main(
     model_id,
@@ -97,6 +40,7 @@ def main(
     caption_dir,
     features_dir,
     result_dir,
+    prompt_format,
     use_demonstration,
     demonstration_selection,
     demonstration_distribution,
@@ -107,10 +51,9 @@ def main(
     debug_mode,
     shots
     ):
-
     inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, None)
     support_annots = []
-    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs, ):
+    for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
         annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, None)
         support_annots += annots
     
@@ -120,14 +63,11 @@ def main(
 
     os.makedirs(result_dir, exist_ok=True)
 
-    model = AutoModelForCausalLM.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/", device_map="cuda")
-    tokenizer = AutoTokenizer.from_pretrained(model_id, cache_dir="/mnt/data1/aditi/hf/new_cache_dir/", device_map="cuda")
-
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        device_map="cuda",
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
     )
 
     results = {
@@ -154,9 +94,10 @@ def main(
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
-            messages = prepare_inputs(
+            content = prepare_inputs(
                 annot,
-                idx,
+                idx, 
+                prompt_format,
                 use_demonstration,
                 demonstration_selection,
                 demonstration_distribution,
@@ -165,17 +106,28 @@ def main(
                 labels,
                 shots
             )
+            messages = [
+                {"role": "user", "content": f"{content}"},
+            ]
             
 
-            outputs = pipeline(
+            input_ids = tokenizer.apply_chat_template(
                 messages,
+                add_generation_prompt=True,
+                return_tensors="pt"
+            ).to(model.device)
+            
+            outputs = model.generate(
+                input_ids,
                 max_new_tokens=10,
                 do_sample=False,
                 num_beams=1
             )
-            response_text=outputs[0]["generated_text"][-1]['content']
-            response_text= response_text.replace('\n', ' ')
-            response_text= response_text.replace('**', ' ')
+
+            response = outputs[0][input_ids.shape[-1]:]
+            response_text = tokenizer.decode(response, skip_special_tokens=True)
+            response_text= response_text.replace('\n', '')
+            response_text= response_text.replace('**', '')
             
             output_obj = {
                 "img": img,
@@ -236,6 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("--result_dir", type=str, required=True)
 
     parser.add_argument("--use_demonstrations", action="store_true")
+    parser.add_argument("--prompt_format", choices=["system_prompt", "single_prompt", "multi_turn_prompt"])
     parser.add_argument("--demonstration_selection", choices=["random", "tf-idf", "bm-25", "clip", "sift"])
     parser.add_argument("--demonstration_distribution", choices=["equal", "top-k"])
     parser.add_argument("--support_filepaths", nargs='+')
@@ -252,6 +205,7 @@ if __name__ == "__main__":
         args.caption_dir,
         args.feature_dir,
         args.result_dir,
+        args.prompt_format,
         args.use_demonstrations,
         args.demonstration_selection,
         args.demonstration_distribution,

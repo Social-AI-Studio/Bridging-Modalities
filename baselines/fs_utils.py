@@ -11,7 +11,7 @@ from prompt_utils import (
     QUESTION_MULTI_TURN_TEMPLATE
 )
 
-from llava.constants import IMAGE_PLACEHOLDER
+# from llava.constants import IMAGE_PLACEHOLDER
 
 def prepare_inputs(content, content_idx, prompt_format, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
     # if prompt_format == "system_prompt":
