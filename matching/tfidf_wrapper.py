@@ -71,13 +71,13 @@ def main(
             target_classes = np.load(f, allow_pickle=True)
     else:
         # Load the inference annotations
-        inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None)
+        inference_annots = load_inference_dataset(annotation_filepath, caption_dir, None, None)
         print("Num Inference Examples:", len(inference_annots))
         
         # Load the support annotations
         support_annots = []
         for filepath, support_caption_dir in zip(support_filepaths, support_caption_dirs):
-            annots = load_support_dataset(filepath, support_caption_dir, None)
+            annots = load_support_dataset(filepath, support_caption_dir, None, None)
             support_annots += annots
 
         print("Num Support Examples:", len(support_annots))

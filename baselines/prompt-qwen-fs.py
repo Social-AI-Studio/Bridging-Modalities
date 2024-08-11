@@ -215,10 +215,10 @@ def main(
     debug_mode,
     shots
 ):
-    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir)
+    inference_annots = load_inference_dataset(annotation_filepath, caption_dir,features_dir, None)
     support_annots = []
     for filepath, support_caption_dir, support_feature_dir in zip(support_filepaths, support_caption_dirs, support_feature_dirs):
-        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir)
+        annots = load_support_dataset(filepath, support_caption_dir, support_feature_dir, None)
         support_annots += annots
 
     with open(sim_matrix_filepath, 'rb') as f:
