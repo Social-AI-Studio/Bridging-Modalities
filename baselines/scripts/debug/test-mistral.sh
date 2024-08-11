@@ -10,7 +10,7 @@ CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-zs.py \
     --caption_dir /mnt/data1/datasets/memes/fhm/captions/img_clean/ofa-large-caption/ \
     --result_dir ../../../results/baselines/test-mistral &&
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-mistral-fs.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../../prompt-mistral-fs.py \
     --model_id $MODEL \
     --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \

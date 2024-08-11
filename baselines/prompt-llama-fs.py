@@ -12,15 +12,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-# from ..matching.clip_wrapper import get_top_k_similar as clip_sampler
-# from ..matching.sift_wrapper import get_top_k_similar as sift_sampler
-
 from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-# from matching.clip_wrapper import get_top_k_similar as clip_sampler
-# from sift_wrapper import get_top_k_similar as sift_sampler
 
 from prompt_utils import (
     SYSTEM_PROMPT,

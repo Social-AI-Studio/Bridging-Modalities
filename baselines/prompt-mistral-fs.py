@@ -12,8 +12,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from bm25_wrapper import get_top_k_similar as bm25_sampler
 
 from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
@@ -222,7 +222,7 @@ def main(
         inference_annots = inference_annots[:5]
 
     for idx, annot in enumerate(tqdm.tqdm(inference_annots)):
-        img, img_path, content = annot['img'], annot['content']
+        img, content = annot['img'], annot['content']
         id = annot["id"]
         file_extension = ".json"
         filename = id + file_extension

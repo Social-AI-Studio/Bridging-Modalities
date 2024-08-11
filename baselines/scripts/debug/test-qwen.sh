@@ -3,7 +3,7 @@ MISOGYNISTIC_MEME=/mnt/data1/datasets/memes/Misogynistic_MEME/annotations/explan
 
 MODEL=Qwen/Qwen2-7B-Instruct
 
-CUDA_VISIBLE_DEVICES=0 python3 ../../prompt-qwen-fs.py \
+CUDA_VISIBLE_DEVICES=0 python3 ../../../prompt-qwen-fs.py \
     --model_id $MODEL \
     --debug_mode True \
     --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \

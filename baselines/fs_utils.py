@@ -1,8 +1,8 @@
-# from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
+from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
 
-from tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from bm25_wrapper import get_top_k_similar as bm25_sampler
+# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from bm25_wrapper import get_top_k_similar as bm25_sampler
 
 from prompt_utils import (
     SYSTEM_PROMPT,

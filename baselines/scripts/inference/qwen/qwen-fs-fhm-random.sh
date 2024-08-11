@@ -8,19 +8,20 @@ MODEL=Qwen/Qwen2-7B-Instruct
 FHM_ALIGNMENT_MEME=/mnt/data1/datasets/memes/fhm_finegrained/projects/CMTL-RAG/annotations/alignment_rationales_all.jsonl
 FHM_ALIGNMENT_CAPTIONS=/mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption
 
-for EXP in 4 8 16
+for EXP in 4 
 do
     EXP_NAME=${EXP}_shots
     echo $EXP_NAME
     #fhm
     # random
 
-    python3 ../../prompt-qwen-fs.py \
+    python3 ../../../prompt-qwen-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --feature_dir "" \
         --result_dir ../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/fhm_finegrained/random \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
@@ -28,24 +29,25 @@ do
         --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
         --support_feature_dirs ""  \
         --sim_matrix_filepath $FHM_RANDOM \
-        --shots $EXP > ../../fhm-logs/$EXP_NAME/random/$MODEL/fhm-random.log 
+        --shots $EXP 
 
 
     # qwen-mami
     # random
 
-    python3 ../../prompt-qwen-fs.py \
-        --model_id $MODEL \
-        --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
-        --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
-        --feature_dir "" \
-        --result_dir ../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/mami/random \
-        --use_demonstrations \
-        --demonstration_selection "random" \
-        --demonstration_distribution "top-k" \
-        --support_filepaths $FHM_ALIGNMENT_MEME \
-        --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
-        --support_feature_dirs "" \
-        --sim_matrix_filepath $MAMI_RANDOM \
-        --shots $EXP >../../fhm-logs/$EXP_NAME/random/$MODEL/mami-random.log 
+    # python3 ../../../prompt-qwen-fs.py \
+    #     --model_id $MODEL \
+    #     --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
+    #     --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
+    #     --feature_dir "" \
+    #     --result_dir ../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/mami/random \
+    #     --prompt_format "single_prompt" \
+    #     --use_demonstrations \
+    #     --demonstration_selection "random" \
+    #     --demonstration_distribution "top-k" \
+    #     --support_filepaths $FHM_ALIGNMENT_MEME \
+    #     --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
+    #     --support_feature_dirs "" \
+    #     --sim_matrix_filepath $MAMI_RANDOM \
+    #     --shots $EXP >../../fhm-logs/$EXP_NAME/random/$MODEL/mami-random.log 
 done

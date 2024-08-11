@@ -12,12 +12,13 @@ do
     # fhm
     # random
 
-    python3 -u ../../prompt-mistral-fs.py \
+    python3 -u ../../../prompt-mistral-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --feature_dir "" \
         --result_dir ../../../results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
@@ -30,7 +31,7 @@ do
     # mistral-mami
     # # random
 
-    python3 -u ../../prompt-mistral-fs.py \
+    python3 -u ../../../prompt-mistral-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \

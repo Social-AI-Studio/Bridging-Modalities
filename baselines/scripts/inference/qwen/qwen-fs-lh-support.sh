@@ -13,12 +13,13 @@ MODEL=Qwen/Qwen2-7B-Instruct
 # EXP=4
 # EXP_NAME=4_shots
 
-# python3 ../../prompt-qwen-fs.py \
+# python3 ../../../prompt-qwen-fs.py \
 #         --model_id $MODEL \
 #         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
 #         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
 #         --feature_dir "" \
 #         --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/fhm_finegrained/tfidf \
+#         --prompt_format "single_prompt" \
 #         --use_demonstrations \
 #         --demonstration_selection "tf-idf" \
 #         --demonstration_distribution "top-k" \
@@ -34,12 +35,13 @@ do
     echo $EXP_NAME
 
     #tf idf
-    python3 ../../prompt-qwen-fs.py \
+    python3 ../../../prompt-qwen-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --feature_dir "" \
         --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/fhm_finegrained/tfidf \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --demonstration_selection "tf-idf" \
         --demonstration_distribution "top-k" \
@@ -51,12 +53,13 @@ do
 
     # bm 25
 
-    python3 ../../prompt-qwen-fs.py \
+    python3 ../../../prompt-qwen-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --feature_dir "" \
         --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/fhm_finegrained/bm25 \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --demonstration_selection "bm-25" \
         --demonstration_distribution "top-k" \
@@ -69,12 +72,13 @@ do
 
     # tf-idf
 
-    python3 ../../prompt-qwen-fs.py \
+    python3 ../../../prompt-qwen-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --feature_dir "" \
         --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/mami/tfidf \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --demonstration_selection "tf-idf" \
         --demonstration_distribution "top-k" \
@@ -86,12 +90,13 @@ do
 
     # bm-25
 
-    python3 ../../prompt-qwen-fs.py \
+    python3 ../../../prompt-qwen-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/mami/annotations/test.jsonl \
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --feature_dir "" \
         --result_dir ../../../results/baselines/$EXP_NAME/$1/$MODEL/mami/bm25 \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --demonstration_selection "bm-25" \
         --demonstration_distribution "top-k" \

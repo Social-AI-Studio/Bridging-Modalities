@@ -17,13 +17,13 @@ do
     echo $EXP_NAME
 
     #tf idf
-    python3 -u ../../prompt-mistral-fs.py \
+    python3 -u ../../../prompt-mistral-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --feature_dir "" \
-        --result_dir ../../../results/baselines/multi_turn_prompt/$EXP_NAME/$1/$MODEL/fhm_finegrained/tfidf \
-        --prompt_format "multi_turn_prompt" \
+        --result_dir ../../../results/baselines/system_prompt/$EXP_NAME/$1/$MODEL/fhm_finegrained/tfidf \
+        --prompt_format "system_prompt" \
         --use_demonstrations \
         --demonstration_selection "tf-idf" \
         --demonstration_distribution "top-k" \
@@ -31,6 +31,6 @@ do
         --support_caption_dirs "" \
         --support_feature_dirs "" \
         --sim_matrix_filepath $FHM_TFIDF \
-        --shots $EXP # > ../../logs/multi_turn_prompt/$EXP_NAME/$1/$MODEL/fhm-tfidf.log
+        --shots $EXP # > ../../logs/system_prompt/$EXP_NAME/$1/$MODEL/fhm-tfidf.log
 
 done

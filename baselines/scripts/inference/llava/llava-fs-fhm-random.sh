@@ -41,6 +41,7 @@ do
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --result_dir ../../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/mami/random \
         --image_dir /mnt/data1/datasets/memes/mami/images/img/test/ \
+        --prompt_format "single_prompt" \
         --use_demonstrations \
         --prompt_format "single_prompt" \
         --demonstration_selection "random" \

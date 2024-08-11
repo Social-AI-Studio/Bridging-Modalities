@@ -18,7 +18,7 @@ do
     echo $EXP_NAME
 
     #tf idf
-    python3 -u ../../prompt-qwen-fs.py \
+    python3 -u ../../../prompt-qwen-fs.py \
         --model_id $MODEL \
         --annotation_filepath /mnt/data1/datasets/memes/fhm_finegrained/annotations/dev_seen.json \
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \

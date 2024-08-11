@@ -12,8 +12,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
 
 
-# from ..matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-# from ..matching.bm25_wrapper import get_top_k_similar as bm25_sampler
+# from tfidf_wrapper import get_top_k_similar as tfidf_sampler
+# from bm25_wrapper import get_top_k_similar as bm25_sampler
 
 from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
 from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
@@ -35,7 +35,7 @@ def prepare_inputs(content, content_idx, prompt_format, use_demonstrations, demo
     elif prompt_format == "system_prompt":
         prepare_fn = prepare_inputs_system
     elif prompt_format == "single_prompt":
-        prepare_fn = prepare_inputs
+        prepare_fn = prepare_inputs_single_prompt
     elif prompt_format == "multi_turn_prompt":
         prepare_fn = prepare_inputs_system_conversational
     else:
@@ -88,12 +88,6 @@ def prepare_inputs_single_prompt(content, content_idx, use_demonstrations, demon
 
     joined_examples = "".join(formatted_examples)
     prompt = [{"role": "user", "content": joined_examples}]
-
-    
-    for obj in prompt:
-        print("### " + obj['role'].upper())    
-        print(obj['content'])
-    exit()
     return prompt
 
 def prepare_inputs_system(content, content_idx, use_demonstrations, demonstration_selection, demonstration_distribution, support_annots, sim_matrix, labels, k):
