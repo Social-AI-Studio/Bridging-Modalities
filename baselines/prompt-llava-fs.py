@@ -26,7 +26,7 @@ from llava.mm_utils import (
     get_model_name_from_path,
 )
 
-from fs_utils import prepare_inputs_llava
+from fs_utils_llava import prepare_inputs_llava
 
 # Reference: https://github.dev/haotian-liu/LLaVA/pull/1502/files
 
