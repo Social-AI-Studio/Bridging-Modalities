@@ -22,7 +22,6 @@ do
     #     --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
     #     --result_dir ../../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
     #     --use_demonstrations \
-    #     --prompt_format "single_prompt" \
     #     --demonstration_selection "random" \
     #     --demonstration_distribution "top-k" \
     #     --support_filepaths $FHM_ALIGNMENT_MEME \
@@ -40,13 +39,12 @@ do
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --result_dir ../../../../fhm-results/baselines/$EXP_NAME/random/$MODEL/mami/random \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
         --support_filepaths $FHM_ALIGNMENT_MEME \
         --support_caption_dirs $FHM_ALIGNMENT_CAPTIONS \
         --support_feature_dirs ""  \
-        --sim_matrix_filepath $MAMI_RANDOM \
+        --sim_matrix_filepath $FHM_RANDOM \
         --shots $EXP > ../../../fhm-logs/$EXP_NAME/random/$MODEL/mami-random.log
 
 done

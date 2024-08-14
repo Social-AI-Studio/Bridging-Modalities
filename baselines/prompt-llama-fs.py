@@ -8,22 +8,7 @@ import random
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from sklearn.metrics import f1_score, accuracy_score
-from sklearn.metrics.pairwise import cosine_similarity
 from utils import load_inference_dataset, load_support_dataset
-
-
-from matching.tfidf_wrapper import get_top_k_similar as tfidf_sampler
-from matching.bm25_wrapper import get_top_k_similar as bm25_sampler
-
-from prompt_utils import (
-    SYSTEM_PROMPT,
-    INTRODUCTION,
-    INTRODUCTION_WITHOUT_INSTRUCTIONS,
-    EXAMPLE_TEMPLATE_WITH_RATIONALE,
-    QUESTION_TEMPLATE,
-    ANSWER_MULTI_TURN_TEMPLATE,
-    QUESTION_MULTI_TURN_TEMPLATE
-)
 
 from fs_utils import prepare_inputs
 
@@ -33,7 +18,6 @@ def main(
     caption_dir,
     features_dir,
     result_dir,
-    prompt_format,
     use_demonstration,
     demonstration_selection,
     demonstration_distribution,
@@ -87,10 +71,10 @@ def main(
             with open(result_filepath) as f:
                 output_obj = json.load(f)
         else:
-            content = prepare_inputs(
+            messages = prepare_inputs(
                 annot,
                 idx, 
-                prompt_format,
+                "single_prompt",
                 use_demonstration,
                 demonstration_selection,
                 demonstration_distribution,
@@ -99,10 +83,6 @@ def main(
                 labels,
                 shots
             )
-            messages = [
-                {"role": "user", "content": f"{content}"},
-            ]
-            
 
             input_ids = tokenizer.apply_chat_template(
                 messages,
@@ -197,7 +177,6 @@ if __name__ == "__main__":
         args.caption_dir,
         args.feature_dir,
         args.result_dir,
-        args.prompt_format,
         args.use_demonstrations,
         args.demonstration_selection,
         args.demonstration_distribution,

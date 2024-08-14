@@ -18,7 +18,6 @@ do
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --result_dir ../../../../lh-results/baselines/$EXP_NAME/random/$MODEL/memes/fhm_finegrained/random \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
         --support_filepaths $LATENT_HATRED \
@@ -36,7 +35,6 @@ do
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --result_dir ../../../../lh-results/baselines/$EXP_NAME/random/$MODEL/mami/random \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "random" \
         --demonstration_distribution "top-k" \
         --support_filepaths $LATENT_HATRED \

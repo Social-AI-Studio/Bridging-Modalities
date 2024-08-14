@@ -22,7 +22,6 @@ do
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/memes/fhm_finegrained/tfidf \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "tf-idf" \
         --demonstration_distribution "top-k" \
         --support_filepaths $LATENT_HATRED \
@@ -37,7 +36,6 @@ do
         --caption_dir /mnt/data1/datasets/memes/fhm/captions/deepfillv2/ofa-large-caption/ \
         --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/memes/fhm_finegrained/bm25 \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "bm-25" \
         --demonstration_distribution "top-k" \
         --support_filepaths $LATENT_HATRED \
@@ -55,7 +53,6 @@ do
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/mami/tfidf \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "tf-idf" \
         --demonstration_distribution "top-k" \
         --support_filepaths $LATENT_HATRED \
@@ -70,7 +67,6 @@ do
         --caption_dir /mnt/data1/datasets/memes/mami/captions/deepfillv2/test/ofa-large-caption/ \
         --result_dir ../../../../lh-results/baselines/$EXP_NAME/$1/$MODEL/mami/bm25 \
         --use_demonstrations \
-        --prompt_format "single_prompt" \
         --demonstration_selection "bm-25" \
         --demonstration_distribution "top-k" \
         --support_filepaths $LATENT_HATRED \
