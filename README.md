@@ -30,7 +30,7 @@ To set up the environment, run:
 ```
 pip install -r requirements.txt
 ```
-To replicate the reported performance for each model, navigate to the model's folder under the `baselines/scripts/inference` folder. Each setting (random, 0-shot, few-shot) is contained in a different script. To evaluate `Qwen/Qwen2-7B-Instruct` on using Latent Hatred as a support set using text + caption to rationale matching run:
+To replicate the reported performance for each model, navigate to the model's folder under the `baselines/scripts/inference` folder. Each setting (random, 0-shot, few-shot) is contained in a different script. To evaluate `Qwen/Qwen2-7B-Instruct` on using Latent Hatred as a support set using test record text + caption to support set record rationale matching run:
 ```bash
 bash qwen-fs-lh-support.sh textcaption2rationale 
 ```
